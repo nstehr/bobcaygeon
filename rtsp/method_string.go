@@ -4,9 +4,9 @@ package rtsp
 
 import "fmt"
 
-const _Method_name = "DescribeAnnounceGet_ParameterOptionsPlayPauseRecordRedirectSetupSet_ParameterTeardown"
+const _Method_name = "DescribeAnnounceGet_ParameterOptionsPlayPauseRecordRedirectSetupSet_ParameterTeardownFlush"
 
-var _Method_index = [...]uint8{0, 8, 16, 29, 36, 40, 45, 51, 59, 64, 77, 85}
+var _Method_index = [...]uint8{0, 8, 16, 29, 36, 40, 45, 51, 59, 64, 77, 85, 90}
 
 func (i Method) String() string {
 	if i < 0 || i >= Method(len(_Method_index)-1) {

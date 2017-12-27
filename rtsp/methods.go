@@ -15,4 +15,5 @@ const (
 	Setup
 	Set_Parameter
 	Teardown
+	Flush
 )

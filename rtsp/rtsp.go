@@ -54,6 +54,7 @@ var methods = map[string]Method{
 	strings.ToLower(Setup.String()):         Setup,
 	strings.ToLower(Set_Parameter.String()): Set_Parameter,
 	strings.ToLower(Teardown.String()):      Teardown,
+	strings.ToLower(Flush.String()):         Flush,
 }
 
 // getMethod converts string to Method enum value, returning error if it can't map
