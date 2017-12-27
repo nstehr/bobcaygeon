@@ -2,7 +2,6 @@ package rtsp
 
 import (
 	"bytes"
-	"log"
 	"strings"
 	"testing"
 )
@@ -19,8 +18,6 @@ func TestOptionsParse(t *testing.T) {
 
 	r := strings.NewReader(options)
 	msg, err := readRequest(r)
-
-	log.Println(msg)
 
 	if err != nil {
 		t.Error("Expected non nil err value", err)
@@ -40,6 +37,45 @@ func TestOptionsParse(t *testing.T) {
 	}
 	if msg.Headers["Client-Instance"] != "67F67C1CAA66A2F4" {
 		t.Error("Unexpected Client-Instance", msg.Headers["Client-Instance"])
+	}
+
+}
+
+func TestAnnounceParse(t *testing.T) {
+
+	body := "v=0\r\n" +
+		"o=AirTunes 2699324803567405959 0 IN IP4 192.168.1.5\r\n" +
+		"s=AirTunes\r\n" +
+		"c=IN IP4 192.168.1.5\r\n" +
+		"t=0 0\r\n" +
+		"m=audio 0 RTP/AVP 96\r\n" +
+		"a=rtpmap:96 mpeg4-generic/44100/2\r\n" +
+		"a=fmtp:96\r\n" +
+		"a=fpaeskey:RlBMWQECAQAAAAA8AAAAAOG6c4aMdLkXAX+lbjp7EhgAAAAQeX5uqGyYkBmJX+gd5ANEr+amI8urqFmvcNo87pR0BXGJ4eLf\r\n" +
+		"a=aesiv:VZTaHn4wSJ84Jjzlb94m0Q==\r\n" +
+		"a=min-latency:11025\r\n"
+
+	announce := "ANNOUNCE rtsp://192.168.1.45/2699324803567405959 RTSP/1.0\r\n" +
+		"X-Apple-Device-ID: 0xa4d1d2800b68\r\n" +
+		"CSeq: 16\r\n" +
+		"DACP-ID: 14413BE4996FEA4D\r\n" +
+		"Active-Remote: 2543110914\r\n" +
+		"Content-Type: application/sdp\r\n" +
+		"Content-Length: 331\r\n" +
+		"\r\n" + body
+
+	r := strings.NewReader(announce)
+	msg, err := readRequest(r)
+
+	if err != nil {
+		t.Error("Expected non nil err value", err)
+	}
+	if msg.Method != Announce {
+		t.Error("Expected Announce got: ", msg.Method)
+	}
+
+	if msg.Body != body {
+		t.Error("Expected " + body + " got: " + msg.Body)
 	}
 
 }

@@ -14,3 +14,12 @@ func TestResponseGenerate(t *testing.T) {
 		t.Error(fmt.Sprintf("Expected: %s\r\n Got: %s", expectedResp, resp))
 	}
 }
+
+func TestResponseGenerateIPv6(t *testing.T) {
+	expectedResp := "OVq+aJeTOvhFEItbsHrEp82mCvbbC8Nlw6CmSGfEW1LfPWJ0C4asxzl3kSJvy1SzvWZII0oHq18mAsv0ycF3B+tWKrc9TOzng9kyQvzKTwqjscUjjqh0x/m6kedetJ7vIGxD8JbdaG5W7oN8f0IIgHRcXcNfw1wZ5EctlTjkBypXFJN+bgQgie+f8N+ui3WaSp6/sFSdZV820kNW8OqQItqEVZPz199TFwxMYGqJBBC62pbZlV1qoFTiPhDIcIqLiDHHvSIj3b9uFaYA2juVx1YCcbsJ9EsKTItIP3ONgoLDFf+VC0BBSIylQ2fJ/4L0CxMdiTUW3YeMw3WYmHtIMQ"
+	mac, _ := net.ParseMAC("04:0c:ce:df:c6:d8")
+	resp, _ := generateChallengeResponse("4nQ5iywx/G99yNw9f6oPPg==", mac, "fe80::60c:ceff:fedf:c6d8")
+	if resp != expectedResp {
+		t.Error(fmt.Sprintf("Expected: %s\r\n Got: %s", expectedResp, resp))
+	}
+}

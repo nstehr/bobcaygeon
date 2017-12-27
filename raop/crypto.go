@@ -54,9 +54,6 @@ func generateChallengeResponse(challenge string, macAddr net.HardwareAddr, ipAdd
 		b = b[len(b)-4:]
 	}
 
-	log.Println(hex.EncodeToString(b))
-	log.Println(hex.EncodeToString(macAddr))
-
 	decodedChallenge = append(decodedChallenge, b...)
 	decodedChallenge = append(decodedChallenge, macAddr...)
 

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 )
 
@@ -57,7 +58,19 @@ func readRequest(r io.Reader) (*Request, error) {
 	}
 
 	req.Headers = headers
-	//TODO: handle body
+
+	contentLength, hasBody := req.Headers["Content-Length"]
+	if !hasBody {
+		return req, nil
+	}
+
+	// now read the body
+	length, _ := strconv.Atoi(contentLength)
+	bodyBuf := make([]byte, length)
+	buf.Read(bodyBuf)
+
+	req.Body = string(bodyBuf)
+
 	return req, nil
 }
 
@@ -68,6 +81,10 @@ func writeResponse(w io.Writer, resp *Response) (n int, err error) {
 		buffer.WriteString(fmt.Sprintf("%s: %s\r\n", header, value))
 	}
 	buffer.WriteString("\r\n")
-	//TODO: handle body
+
+	if resp.Body != "" {
+		resp.Headers["Content-Length"] = strconv.Itoa(len(resp.Body))
+		buffer.WriteString(resp.Body)
+	}
 	return w.Write(buffer.Bytes())
 }
