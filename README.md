@@ -1,5 +1,7 @@
 Bobcaygeon
 =========
+![gord downie](https://github.com/nstehr/bobcaygeon/blob/master/downie1a.jpg)
+
 Multi room speaker application.
 
 ## Overview
