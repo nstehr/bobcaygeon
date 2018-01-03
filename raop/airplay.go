@@ -2,6 +2,7 @@ package raop
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net"
@@ -37,21 +38,24 @@ var airtunesServiceProperties = []string{"txtvers=1",
 	"cn=0,1",
 	"vn=3"}
 
+// AirplayServer server for handling the RTSP protocol
 type AirplayServer struct {
 	port          int
 	name          string
-	rtspServer    *rtsp.RtspServer
+	rtspServer    *rtsp.Server
 	zerconfServer *zeroconf.Server
 	session       *rtsp.Session
 }
 
+// NewAirplayServer instantiates a new airplayer server
 func NewAirplayServer(port int, name string) *AirplayServer {
 	as := AirplayServer{port: port, name: name}
 	return &as
 }
 
+//Start starts the airplay server, broadcasting on bonjour, ready to accept requests
 func (a *AirplayServer) Start(verbose bool) {
-	rtspServer := rtsp.NewRtspServer(a.port)
+	rtspServer := rtsp.NewServer(a.port)
 	// as per the protocol, the mac address makes up part of the service name
 	macAddr := getMacAddr().String()
 	macAddr = strings.Replace(macAddr, ":", "", -1)
@@ -103,6 +107,7 @@ func (a *AirplayServer) handleAnnounce(req *rtsp.Request, resp *rtsp.Response, l
 		if err != nil {
 			log.Println("error parsing SDP payload: ", err)
 			resp.Status = rtsp.BadRequest
+			return
 		}
 
 		// right now, we only maintain one audio session, so close any existing one
@@ -113,8 +118,21 @@ func (a *AirplayServer) handleAnnounce(req *rtsp.Request, resp *rtsp.Response, l
 		rtpmap := description.Attributes["rtpmap"]
 
 		if strings.Contains(rtpmap, "AppleLossless") {
-			aesKey := description.Attributes["rsaaeskey"]
-			aesIv := description.Attributes["aesiv"]
+			aesKey, err := aeskeyFromRsa(description.Attributes["rsaaeskey"])
+			if err != nil {
+				log.Println("error retrieving aes key", err)
+				resp.Status = rtsp.InternalServerError
+				return
+			}
+			// from: https://github.com/joelgibson/go-airplay/blob/19e70c97e3903365f0a7f5a3f3c33751f4e8fb94/airplay/rtsp.go#L149
+			aesIv64 := description.Attributes["aesiv"]
+			aesIv64 = base64pad(aesIv64)
+			aesIv, err := base64.StdEncoding.DecodeString(aesIv64)
+			if err != nil {
+				log.Println("error retrieving aes IV", err)
+				resp.Status = rtsp.InternalServerError
+				return
+			}
 			decoder = NewDecryptingAlacDecoder(aesKey, aesIv)
 		}
 		a.session = rtsp.NewSession(description, decoder)
@@ -154,6 +172,7 @@ func (a *AirplayServer) handleRecord(req *rtsp.Request, resp *rtsp.Response, loc
 	if err != nil {
 		log.Println("could not start streaming session: ", err)
 		resp.Status = rtsp.InternalServerError
+		return
 	}
 	resp.Headers["Audio-Latency"] = "2205"
 	resp.Status = rtsp.Ok
@@ -164,6 +183,7 @@ func handlSetParameter(req *rtsp.Request, resp *rtsp.Response, localAddress stri
 	resp.Status = rtsp.Ok
 }
 
+// Stop stops thes airplay server
 func (a *AirplayServer) Stop() {
 	a.rtspServer.Stop()
 	a.zerconfServer.Shutdown()

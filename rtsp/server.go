@@ -2,38 +2,43 @@ package rtsp
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
 )
 
+// RequestHandler callback function that gets invoked when a request is received
 type RequestHandler func(req *Request, resp *Response, localAddr string, remoteAddr string)
 
-type RtspServer struct {
+// Server Server for handling Rtsp control requests
+type Server struct {
 	port     int
 	handlers map[Method]RequestHandler
 	done     chan bool
 }
 
-func NewRtspServer(port int) *RtspServer {
-	server := RtspServer{}
+// NewServer instantiates a new RtspServer
+func NewServer(port int) *Server {
+	server := Server{}
 	server.port = port
 	server.done = make(chan bool)
 	server.handlers = make(map[Method]RequestHandler)
 	return &server
 }
 
-func (r *RtspServer) AddHandler(m Method, rh RequestHandler) {
+// AddHandler registers a handler for a given RTSP method
+func (r *Server) AddHandler(m Method, rh RequestHandler) {
 	r.handlers[m] = rh
 }
 
 // Stop stops the RTSP server
-func (r *RtspServer) Stop() {
+func (r *Server) Stop() {
 	log.Println("Stopping RTSP server")
 	r.done <- true
 }
 
 // Start creates listening socket for the RTSP connection
-func (r *RtspServer) Start(verbose bool) {
+func (r *Server) Start(verbose bool) {
 	log.Println(fmt.Sprintf("Starting RTSP server on port: %d", r.port))
 	tcpListen, err := net.Listen("tcp", fmt.Sprintf(":%d", r.port))
 	if err != nil {
@@ -58,17 +63,21 @@ func (r *RtspServer) Start(verbose bool) {
 }
 
 func read(conn net.Conn, handlers map[Method]RequestHandler, verbose bool) {
+	defer conn.Close()
 	for {
 		request, err := readRequest(conn)
 		if err != nil {
-			log.Println("Error reading data: ", err.Error())
-			conn.Close()
+			if err == io.EOF {
+				log.Println("Client closed connection")
+			} else {
+				log.Println("Error reading data: ", err.Error())
+			}
 			return
 		}
 
 		if verbose {
 			log.Println("Received Request")
-			log.Println(request.PrettyFormatted())
+			log.Println(request.String())
 		}
 
 		handler, exists := handlers[request.Method]
@@ -86,7 +95,7 @@ func read(conn net.Conn, handlers map[Method]RequestHandler, verbose bool) {
 		handler(request, &resp, localAddr.String(), remoteAddr.String())
 		if verbose {
 			log.Println("Outbound Response")
-			log.Println(resp.PrettyFormatted())
+			log.Println(resp.String())
 		}
 		writeResponse(conn, &resp)
 

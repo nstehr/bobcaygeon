@@ -24,3 +24,11 @@
 [[constraint]]
   branch = "master"
   name = "github.com/grandcat/zeroconf"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/alicebob/alac"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/hajimehoshi/oto"

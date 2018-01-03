@@ -3,6 +3,7 @@ package raop
 import (
 	"crypto"
 	"crypto/rsa"
+	"crypto/sha1"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
@@ -18,7 +19,7 @@ import (
 //from Shairport: https://github.com/abrasive/shairport/
 const privateKey string = ``
 
-// these two functions are from the above git repo
+// these three functions are from the above git repo
 func base64pad(s string) string {
 	for len(s)%4 != 0 {
 		s += "="
@@ -33,6 +34,26 @@ func base64unpad(s string) string {
 	return s
 }
 
+func aeskeyFromRsa(rsaaeskey64 string) (key []byte, err error) {
+	s64 := base64pad(rsaaeskey64)
+	s, err := base64.StdEncoding.DecodeString(s64)
+	if err != nil {
+		return
+	}
+	privKey, err := getPrivateKey()
+	if err != nil {
+		return nil, err
+	}
+	return rsa.DecryptOAEP(sha1.New(), nil, privKey, s, nil)
+}
+
+// the challenge response is the following
+// 1. the base64 decoded data passed in as the challenge
+// 2. the local connection IP address is added
+// 3. the local connection's interface's mac address is added in (same that is used for the bonjour broadcast)
+// 4. padding 0s are added if less than 32 bytes
+// 5. the payload is signed with the private key
+// 6. the signed data is base64 encoded
 func generateChallengeResponse(challenge string, macAddr net.HardwareAddr, ipAddr string) (string, error) {
 
 	log.Printf(fmt.Sprintf("building challenge for %s (ip: %s, mac: %s)", challenge, ipAddr, macAddr.String()))
@@ -62,8 +83,8 @@ func generateChallengeResponse(challenge string, macAddr net.HardwareAddr, ipAdd
 	}
 
 	log.Println(hex.EncodeToString(decodedChallenge))
-	pem, _ := pem.Decode([]byte(privateKey))
-	rsaPrivKey, err := x509.ParsePKCS1PrivateKey(pem.Bytes)
+
+	rsaPrivKey, err := getPrivateKey()
 	if err != nil {
 		return "", err
 	}

@@ -2,6 +2,12 @@
 
 
 [[projects]]
+  branch = "master"
+  name = "github.com/alicebob/alac"
+  packages = ["."]
+  revision = "838a288e23c9bc47b04112f3bb68a5537ce0c092"
+
+[[projects]]
   name = "github.com/cenkalti/backoff"
   packages = ["."]
   revision = "61153c768f31ee5f130071d08fc82b85208528de"
@@ -9,9 +15,21 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/gopherjs/gopherjs"
+  packages = ["js"]
+  revision = "444abdf920945de5d4a977b572bcc6c674d1e4eb"
+
+[[projects]]
+  branch = "master"
   name = "github.com/grandcat/zeroconf"
   packages = ["."]
   revision = "8219919fca892353a082b184bca66db55c55b583"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hajimehoshi/oto"
+  packages = [".","internal/jni"]
+  revision = "ce369678328c1c03bf81fb98b73a86271ef8c45f"
 
 [[projects]]
   branch = "master"
@@ -28,6 +46,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "237306399a889766fedd2533d213ddad1086a3a6cd5d722c4fad7b244600776c"
+  inputs-digest = "b393baccdba2d2d5a89f60b4ca7c9bfec929a19fd6bff390e1860f3a7b8f7d21"
   solver-name = "gps-cdcl"
   solver-version = 1

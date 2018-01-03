@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// Request RTSP request
 type Request struct {
 	Method     Method
 	RequestURI string
@@ -14,6 +15,7 @@ type Request struct {
 	Body       string
 }
 
+// Response RTSP response
 type Response struct {
 	Headers  map[string]string
 	Body     string
@@ -21,7 +23,7 @@ type Response struct {
 	protocol string
 }
 
-func (r *Request) PrettyFormatted() string {
+func (r *Request) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("Protocol: %s\r\nMethod: %s\r\nRequest URI: %s\r\n", r.protocol, r.Method.String(), r.RequestURI))
 	buffer.WriteString("Headers:\r\n")
@@ -32,7 +34,7 @@ func (r *Request) PrettyFormatted() string {
 	return buffer.String()
 }
 
-func (r *Response) PrettyFormatted() string {
+func (r *Response) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("Protocol: %s\r\nStatus: %s\r\n", r.protocol, r.Status.String()))
 	buffer.WriteString("Headers:\r\n")
@@ -66,6 +68,7 @@ func getMethod(method string) (Method, error) {
 	return m, nil
 }
 
+// GetMethods all RTSP methods as a slice of strings
 func GetMethods() []string {
 	keys := make([]string, 0, len(methods))
 	for k := range methods {

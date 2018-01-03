@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// Parse parses out an SDP packet into a SDP struct
 func Parse(r io.Reader) (*SessionDescription, error) {
 	sdp := NewSessionDescription()
 	s := bufio.NewScanner(r)
