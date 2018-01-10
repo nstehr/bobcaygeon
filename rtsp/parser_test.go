@@ -74,8 +74,8 @@ func TestAnnounceParse(t *testing.T) {
 		t.Error("Expected Announce got: ", msg.Method)
 	}
 
-	if msg.Body != body {
-		t.Error("Expected " + body + " got: " + msg.Body)
+	if string(msg.Body) != body {
+		t.Error("Expected " + body + " got: " + string(msg.Body))
 	}
 
 }

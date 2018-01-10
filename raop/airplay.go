@@ -36,6 +36,7 @@ var airtunesServiceProperties = []string{"txtvers=1",
 	"ek=1",
 	"et=0,1",
 	"cn=0,1",
+	"md=0,1,2",
 	"vn=3"}
 
 // AirplayServer server for handling the RTSP protocol
@@ -81,6 +82,7 @@ func (a *AirplayServer) Start(verbose bool) {
 	rtspServer.AddHandler(rtsp.Setup, a.handleSetup)
 	rtspServer.AddHandler(rtsp.Record, a.handleRecord)
 	rtspServer.AddHandler(rtsp.Set_Parameter, handlSetParameter)
+	rtspServer.AddHandler(rtsp.Flush, handlFlush)
 	rtspServer.Start(verbose)
 
 }
@@ -103,7 +105,7 @@ func handleOptions(req *rtsp.Request, resp *rtsp.Response, localAddress string, 
 
 func (a *AirplayServer) handleAnnounce(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
 	if req.Headers["Content-Type"] == "application/sdp" {
-		description, err := sdp.Parse(strings.NewReader(req.Body))
+		description, err := sdp.Parse(bytes.NewReader(req.Body))
 		if err != nil {
 			log.Println("error parsing SDP payload: ", err)
 			resp.Status = rtsp.BadRequest
@@ -180,6 +182,13 @@ func (a *AirplayServer) handleRecord(req *rtsp.Request, resp *rtsp.Response, loc
 }
 
 func handlSetParameter(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
+	if req.Headers["Content-Type"] == "application/x-dmap-tagged" {
+		parseDaap(req.Body)
+	}
+	resp.Status = rtsp.Ok
+}
+
+func handlFlush(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
 	resp.Status = rtsp.Ok
 }
 

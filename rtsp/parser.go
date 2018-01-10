@@ -67,9 +67,9 @@ func readRequest(r io.Reader) (*Request, error) {
 	// now read the body
 	length, _ := strconv.Atoi(contentLength)
 	bodyBuf := make([]byte, length)
-	buf.Read(bodyBuf)
-
-	req.Body = string(bodyBuf)
+	// makes sure we read the full length of the content
+	io.ReadFull(buf, bodyBuf)
+	req.Body = bodyBuf
 
 	return req, nil
 }

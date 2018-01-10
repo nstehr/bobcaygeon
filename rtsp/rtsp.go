@@ -12,7 +12,7 @@ type Request struct {
 	RequestURI string
 	protocol   string
 	Headers    map[string]string
-	Body       string
+	Body       []byte
 }
 
 // Response RTSP response
