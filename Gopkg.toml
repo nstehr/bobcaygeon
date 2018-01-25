@@ -32,3 +32,11 @@
 [[constraint]]
   branch = "master"
   name = "github.com/hajimehoshi/oto"
+
+[[constraint]]
+  name = "github.com/hashicorp/memberlist"
+  version = "0.1.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/dustinkirkland/golang-petname"

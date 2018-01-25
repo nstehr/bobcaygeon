@@ -8,10 +8,22 @@
   revision = "838a288e23c9bc47b04112f3bb68a5537ce0c092"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/armon/go-metrics"
+  packages = ["."]
+  revision = "7aa49fde808223f8dadfdbfd3a20ff6c19e5f9ec"
+
+[[projects]]
   name = "github.com/cenkalti/backoff"
   packages = ["."]
   revision = "61153c768f31ee5f130071d08fc82b85208528de"
   version = "v1.1.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/dustinkirkland/golang-petname"
+  packages = ["."]
+  revision = "d3c2ba80e75eeef10c5cf2fc76d2c809637376b3"
 
 [[projects]]
   branch = "master"
@@ -33,9 +45,57 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/hashicorp/errwrap"
+  packages = ["."]
+  revision = "7554cd9344cec97297fa6649b055a8c98c2a1e55"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/go-immutable-radix"
+  packages = ["."]
+  revision = "59b67882ec612f43b9d4c4fd97cebd507be4b3ee"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/go-msgpack"
+  packages = ["codec"]
+  revision = "fa3f63826f7c23912c15263591e65d54d080b458"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/go-multierror"
+  packages = ["."]
+  revision = "b7773ae218740a7be65057fc60b366a49b538a44"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/go-sockaddr"
+  packages = ["."]
+  revision = "9b4c5fa5b10a683339a270d664474b9f4aee62fc"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/golang-lru"
+  packages = ["simplelru"]
+  revision = "0a025b7e63adc15a622f29b0b2c4c3848243bbf6"
+
+[[projects]]
+  name = "github.com/hashicorp/memberlist"
+  packages = ["."]
+  revision = "ce8abaa0c60c2d6bee7219f5ddf500e0a1457b28"
+  version = "v0.1.0"
+
+[[projects]]
+  branch = "master"
   name = "github.com/miekg/dns"
   packages = [".","internal/socket"]
   revision = "b38dc3dcb734f6ca3a830a1f92edf188330956c5"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/sean-/seed"
+  packages = ["."]
+  revision = "e2103e2c35297fb7e17febb81e49b312087a2372"
 
 [[projects]]
   branch = "master"
@@ -46,6 +106,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b393baccdba2d2d5a89f60b4ca7c9bfec929a19fd6bff390e1860f3a7b8f7d21"
+  inputs-digest = "3f57ae32cfc1e0281bbb064f1ffe7faf6b1c00e0b7ef85f26731c9bf8e27dc51"
   solver-name = "gps-cdcl"
   solver-version = 1
