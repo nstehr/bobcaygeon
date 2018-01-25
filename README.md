@@ -13,7 +13,7 @@ Currently tested on OSX, not on raspberry pi yet
 
 ## Build
 I've followed the practice of committing vendor (https://github.com/golang/dep/blob/master/docs/FAQ.md#should-i-commit-my-vendor-directory)
-1. `go build`
+1. `go build cmd/bcg.go`
 
 ## Run
 ```
