@@ -22,5 +22,7 @@ I've followed the practice of committing vendor (https://github.com/golang/dep/b
   -port int
         Set the port the service is listening to. (default 5000)
   -verbose
-        Verbose logging; logs requests and responses
+        Verbose logging; logs requests and response
+  -clusterPort
+        Port to listen for cluster events (default 7676)
 ```
