@@ -1,4 +1,4 @@
-package bobcaygeon
+package player
 
 import "github.com/alicebob/alac"
 

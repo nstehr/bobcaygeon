@@ -1,4 +1,4 @@
-package bobcaygeon
+package player
 
 import (
 	"log"
@@ -7,6 +7,11 @@ import (
 	"github.com/hajimehoshi/oto"
 	"github.com/nstehr/bobcaygeon/rtsp"
 )
+
+// Player defines a player for outputting the data packets from the session
+type Player interface {
+	Play(session *rtsp.Session)
+}
 
 type LocalPlayer struct{}
 

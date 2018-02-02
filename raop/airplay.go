@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/grandcat/zeroconf"
+	"github.com/nstehr/bobcaygeon/player"
 	"github.com/nstehr/bobcaygeon/rtsp"
 	"github.com/nstehr/bobcaygeon/sdp"
 )
@@ -46,11 +47,11 @@ type AirplayServer struct {
 	rtspServer    *rtsp.Server
 	zerconfServer *zeroconf.Server
 	session       *rtsp.Session
-	player        Player
+	player        player.Player
 }
 
 // NewAirplayServer instantiates a new airplayer server
-func NewAirplayServer(port int, name string, player Player) *AirplayServer {
+func NewAirplayServer(port int, name string, player player.Player) *AirplayServer {
 	as := AirplayServer{port: port, name: name, player: player}
 	return &as
 }

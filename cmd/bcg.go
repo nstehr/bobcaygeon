@@ -12,7 +12,7 @@ import (
 
 	"github.com/grandcat/zeroconf"
 	"github.com/hashicorp/memberlist"
-	"github.com/nstehr/bobcaygeon"
+	"github.com/nstehr/bobcaygeon/player"
 	"github.com/nstehr/bobcaygeon/raop"
 
 	petname "github.com/dustinkirkland/golang-petname"
@@ -78,7 +78,7 @@ func main() {
 		}
 		// since we are the leader, we will start the airplay server to accept the packets
 		// and eventually forward to other members
-		airplayServer := raop.NewAirplayServer(*port, *name, bobcaygeon.NewLocalPlayer())
+		airplayServer := raop.NewAirplayServer(*port, *name, player.NewLocalPlayer())
 		go airplayServer.Start(*verbose)
 		defer airplayServer.Stop()
 		defer server.Shutdown()
