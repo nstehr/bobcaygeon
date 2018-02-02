@@ -46,11 +46,12 @@ type AirplayServer struct {
 	rtspServer    *rtsp.Server
 	zerconfServer *zeroconf.Server
 	session       *rtsp.Session
+	player        Player
 }
 
 // NewAirplayServer instantiates a new airplayer server
-func NewAirplayServer(port int, name string) *AirplayServer {
-	as := AirplayServer{port: port, name: name}
+func NewAirplayServer(port int, name string, player Player) *AirplayServer {
+	as := AirplayServer{port: port, name: name, player: player}
 	return &as
 }
 
@@ -117,10 +118,9 @@ func (a *AirplayServer) handleAnnounce(req *rtsp.Request, resp *rtsp.Response, l
 			a.session.Close()
 		}
 		var decoder rtsp.Decoder
-		rtpmap := description.Attributes["rtpmap"]
 
-		if strings.Contains(rtpmap, "AppleLossless") {
-			aesKey, err := aeskeyFromRsa(description.Attributes["rsaaeskey"])
+		if key, ok := description.Attributes["rsaaeskey"]; ok {
+			aesKey, err := aeskeyFromRsa(key)
 			if err != nil {
 				log.Println("error retrieving aes key", err)
 				resp.Status = rtsp.InternalServerError
@@ -135,7 +135,7 @@ func (a *AirplayServer) handleAnnounce(req *rtsp.Request, resp *rtsp.Response, l
 				resp.Status = rtsp.InternalServerError
 				return
 			}
-			decoder = NewDecryptingAlacDecoder(aesKey, aesIv)
+			decoder = NewDecryptingDecoder(aesKey, aesIv)
 		}
 		a.session = rtsp.NewSession(description, decoder)
 	}
@@ -176,6 +176,7 @@ func (a *AirplayServer) handleRecord(req *rtsp.Request, resp *rtsp.Response, loc
 		resp.Status = rtsp.InternalServerError
 		return
 	}
+	a.player.Play(a.session)
 	resp.Headers["Audio-Latency"] = "2205"
 	resp.Status = rtsp.Ok
 
@@ -194,6 +195,9 @@ func handlFlush(req *rtsp.Request, resp *rtsp.Response, localAddress string, rem
 
 // Stop stops thes airplay server
 func (a *AirplayServer) Stop() {
+	if a.session != nil {
+		a.session.Close()
+	}
 	a.rtspServer.Stop()
 	a.zerconfServer.Shutdown()
 }

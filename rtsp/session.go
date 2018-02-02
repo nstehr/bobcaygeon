@@ -5,7 +5,6 @@ import (
 	"log"
 	"net"
 
-	"github.com/hajimehoshi/oto"
 	"github.com/nstehr/bobcaygeon/sdp"
 )
 
@@ -27,21 +26,23 @@ type PortSet struct {
 
 // Session a streaming session
 type Session struct {
-	description *sdp.SessionDescription
+	Description *sdp.SessionDescription
 	decoder     Decoder
 	RemotePorts PortSet
 	LocalPorts  PortSet
 	dataConn    net.Conn // even though we have all ports, will only open up the data connection to start
+	OutputChan  chan []byte
 }
 
 // NewSession instantiates a new Session
 func NewSession(description *sdp.SessionDescription, decoder Decoder) *Session {
-	return &Session{description: description, decoder: decoder}
+	return &Session{Description: description, decoder: decoder, OutputChan: make(chan []byte, 1000)}
 }
 
 // Close closes a session
 func (s *Session) Close() {
 	s.dataConn.Close()
+	close(s.OutputChan)
 }
 
 // Start starts a session for listening for data
@@ -58,7 +59,6 @@ func (s *Session) Start() error {
 	s.dataConn = conn
 	// start listening for audio data
 	log.Println("Session started.  Listening for audio packets")
-	testChan := make(chan []byte, 1000)
 	go func() {
 		buf := make([]byte, readBuffer)
 		for {
@@ -75,18 +75,7 @@ func (s *Session) Start() error {
 				continue
 			}
 			// once decoded, we can pass it along to be played
-			testChan <- d
-		}
-	}()
-	// TODO: abstract this out, maybe refactor this session/player logic all together
-	go func() {
-		p, err := oto.NewPlayer(44100, 2, 2, 10000)
-		if err != nil {
-			log.Println("error initializing player", err)
-			return
-		}
-		for d := range testChan {
-			p.Write(d)
+			s.OutputChan <- d
 		}
 	}()
 	return nil

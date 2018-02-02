@@ -12,6 +12,7 @@ import (
 
 	"github.com/grandcat/zeroconf"
 	"github.com/hashicorp/memberlist"
+	"github.com/nstehr/bobcaygeon"
 	"github.com/nstehr/bobcaygeon/raop"
 
 	petname "github.com/dustinkirkland/golang-petname"
@@ -30,7 +31,6 @@ const (
 
 func main() {
 	flag.Parse()
-
 	// generate a name for this node and initialize the distributed member list
 	nodeName := petname.Generate(2, "-")
 	log.Println(fmt.Sprintf("Starting node: %s", nodeName))
@@ -52,7 +52,7 @@ func main() {
 
 	entries := make(chan *zeroconf.ServiceEntry)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(10))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(5))
 	defer cancel()
 	err = resolver.Browse(ctx, serviceType, "local", entries)
 	if err != nil {
@@ -78,7 +78,7 @@ func main() {
 		}
 		// since we are the leader, we will start the airplay server to accept the packets
 		// and eventually forward to other members
-		airplayServer := raop.NewAirplayServer(*port, *name)
+		airplayServer := raop.NewAirplayServer(*port, *name, bobcaygeon.NewLocalPlayer())
 		go airplayServer.Start(*verbose)
 		defer airplayServer.Stop()
 		defer server.Shutdown()

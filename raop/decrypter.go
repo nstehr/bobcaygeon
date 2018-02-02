@@ -3,22 +3,20 @@ package raop
 import (
 	"crypto/aes"
 	"crypto/cipher"
-
-	"github.com/alicebob/alac"
 )
 
-// DecryptingAlacDecoder decoder capable of decoding the encrypted packet and treating it as ALAC encoded
-type DecryptingAlacDecoder struct {
+// DecryptingDecoder decoder capable of decoding the encrypted packet and treating it as ALAC encoded
+type DecryptingDecoder struct {
 	aesKey []byte
 	aesIv  []byte
 }
 
 // NewDecryptingAlacDecoder Returns a new decoder that will unencrypt and decode the packet as a Apple Lossless encoded packet
-func NewDecryptingAlacDecoder(aesKey []byte, aesIv []byte) *DecryptingAlacDecoder {
-	return &DecryptingAlacDecoder{aesKey: aesKey, aesIv: aesIv}
+func NewDecryptingDecoder(aesKey []byte, aesIv []byte) *DecryptingDecoder {
+	return &DecryptingDecoder{aesKey: aesKey, aesIv: aesIv}
 }
 
-func (d *DecryptingAlacDecoder) Decode(data []byte) ([]byte, error) {
+func (d *DecryptingDecoder) Decode(data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(d.aesKey)
 	if err != nil {
 		return nil, err
@@ -34,9 +32,5 @@ func (d *DecryptingAlacDecoder) Decode(data []byte) ([]byte, error) {
 	send := make([]byte, len(audio))
 	copy(send, audio)
 
-	decoder, err := alac.New()
-	if err != nil {
-		return nil, err
-	}
-	return decoder.Decode(send), nil
+	return send, nil
 }
