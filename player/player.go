@@ -28,7 +28,7 @@ func (*LocalPlayer) Play(session *rtsp.Session) {
 		for d := range session.OutputChan {
 			rtpmap := session.Description.Attributes["rtpmap"]
 			if strings.Contains(rtpmap, "AppleLossless") {
-				decoded, err := CodecMap["AppleLossless"](d)
+				decoded, err := codecMap["AppleLossless"](d)
 				if err != nil {
 					log.Println("Problem decoding packet")
 				}
