@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/gob"
 	"flag"
 	"fmt"
 	"log"
@@ -14,6 +12,7 @@ import (
 
 	"github.com/grandcat/zeroconf"
 	"github.com/hashicorp/memberlist"
+	"github.com/nstehr/bobcaygeon/cluster"
 	"github.com/nstehr/bobcaygeon/player"
 	"github.com/nstehr/bobcaygeon/raop"
 
@@ -31,82 +30,6 @@ const (
 	serviceType = "_bobcaygeon._tcp"
 )
 
-// EventDelegate handles the delgate functions from the memberlist
-type EventDelegate struct {
-	// keep a list of delegates so that we can have more than one
-	// interested party for the membership events
-	eventDelegates []memberlist.EventDelegate
-}
-
-// NodeMeta is metadata passed to other members about this node
-type NodeMeta struct {
-	RtspPort int
-}
-
-type Delegate struct{}
-
-// NodeMeta is used to retrieve meta-data about the current node
-// when broadcasting an alive message.
-func (d Delegate) NodeMeta(limit int) []byte {
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
-
-	metaData := NodeMeta{RtspPort: *port}
-
-	err := enc.Encode(metaData)
-	if err != nil {
-		log.Println("Error encoding node metadata", err)
-	}
-
-	return buf.Bytes()
-}
-
-// GetBroadcasts is called when user data messages can be broadcast.
-func (Delegate) GetBroadcasts(overhead, limit int) [][]byte {
-	return make([][]byte, 0)
-}
-
-// LocalState is used for a TCP Push/Pull. This is sent to
-// the remote side in addition to the membership information.
-func (Delegate) LocalState(join bool) []byte {
-	return make([]byte, 0)
-}
-
-// MergeRemoteState is invoked after a TCP Push/Pull.
-func (Delegate) MergeRemoteState(buf []byte, join bool) {}
-
-// NotifyMsg is called when a user-data message is received.
-func (Delegate) NotifyMsg([]byte) {}
-
-func newEventDelegate(d []memberlist.EventDelegate) *EventDelegate {
-	return &EventDelegate{eventDelegates: d}
-}
-
-// NotifyJoin is invoked when a node is detected to have joined.
-// The Node argument must not be modified.
-func (ed *EventDelegate) NotifyJoin(node *memberlist.Node) {
-	for _, delegate := range ed.eventDelegates {
-		delegate.NotifyJoin(node)
-	}
-}
-
-// NotifyLeave is invoked when a node is detected to have left.
-// The Node argument must not be modified.
-func (ed *EventDelegate) NotifyLeave(node *memberlist.Node) {
-	for _, delegate := range ed.eventDelegates {
-		delegate.NotifyLeave(node)
-	}
-}
-
-// NotifyUpdate is invoked when a node is detected to have
-// updated, usually involving the meta data. The Node argument
-// must not be modified.
-func (ed *EventDelegate) NotifyUpdate(node *memberlist.Node) {
-	for _, delegate := range ed.eventDelegates {
-		delegate.NotifyUpdate(node)
-	}
-}
-
 func main() {
 	flag.Parse()
 	// generate a name for this node and initialize the distributed member list
@@ -116,7 +39,7 @@ func main() {
 	c.Name = nodeName
 	c.BindPort = *clusterPort
 	c.AdvertisePort = *clusterPort
-	c.Delegate = Delegate{}
+	c.Delegate = cluster.Delegate{MetaData: cluster.NodeMeta{RtspPort: *port}}
 
 	list, err := memberlist.Create(c)
 	if err != nil {
@@ -124,6 +47,13 @@ func main() {
 	}
 
 	var delegates []memberlist.EventDelegate
+	// we pass a player to the airplay server.  In our case
+	// it will be a forwarding player or a regular player
+	var streamPlayer player.Player
+	// we use our airplay server to handle both scenarios
+	// the "leader" and the "follower".  If we are a follower
+	// we don't advertise as an airplay server
+	advertise := false
 	// next we use mdns to try to find a cluster to join.
 	// the curent leader (and receiving airplay server)
 	// will be broadcasting a service to join
@@ -160,31 +90,27 @@ func main() {
 		}
 		// since we are the leader, we will start the airplay server to accept the packets
 		// and eventually forward to other members
-		player := player.NewForwardingPlayer()
-		delegates = append(delegates, player)
+		forwardingPlayer := player.NewForwardingPlayer()
+		streamPlayer = forwardingPlayer
+		delegates = append(delegates, forwardingPlayer)
 
-		nd := newEventDelegate(delegates)
+		nd := cluster.NewEventDelegate(delegates)
 		c.Events = nd
 
-		airplayServer := raop.NewAirplayServer(*port, *name, player)
-		go airplayServer.Start(*verbose)
-		defer airplayServer.Stop()
 		defer server.Shutdown()
+		advertise = true
 	} else {
 		log.Println("Joining cluster")
 		_, err = list.Join([]string{fmt.Sprintf("%s:%d", entry.AddrIPv4[0].String(), entry.Port)})
 		if err != nil {
 			panic("Failed to join cluster: " + err.Error())
 		}
+		streamPlayer = player.NewLocalPlayer()
 	}
 
-	for _, member := range list.Members() {
-		log.Println(fmt.Sprintf("Member: %s %s\n", member.Name, member.Addr))
-		dec := gob.NewDecoder(bytes.NewReader(member.Meta))
-		var meta NodeMeta
-		dec.Decode(&meta)
-		log.Println(meta)
-	}
+	airplayServer := raop.NewAirplayServer(*port, *name, streamPlayer)
+	go airplayServer.Start(*verbose, advertise)
+	defer airplayServer.Stop()
 
 	// Clean exit.
 	sig := make(chan os.Signal, 1)

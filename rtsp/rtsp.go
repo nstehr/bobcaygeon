@@ -23,6 +23,14 @@ type Response struct {
 	protocol string
 }
 
+func NewResponse() *Response {
+	return &Response{Headers: make(map[string]string)}
+}
+
+func NewRequest() *Request {
+	return &Request{Headers: make(map[string]string)}
+}
+
 func (r *Request) String() string {
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("Protocol: %s\r\nMethod: %s\r\nRequest URI: %s\r\n", r.protocol, r.Method.String(), r.RequestURI))

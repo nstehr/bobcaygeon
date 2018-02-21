@@ -84,7 +84,7 @@ func read(conn net.Conn, handlers map[Method]RequestHandler, verbose bool) {
 		if !exists {
 			continue
 		}
-		resp := Response{Headers: make(map[string]string)}
+		resp := NewResponse()
 		// for now we just stick in the protocol (protocol/version) from the request
 		resp.protocol = request.protocol
 		// same with CSeq
@@ -92,12 +92,12 @@ func read(conn net.Conn, handlers map[Method]RequestHandler, verbose bool) {
 		// invokes the client specified handler to build the response
 		localAddr := conn.LocalAddr().(*net.TCPAddr).IP
 		remoteAddr := conn.RemoteAddr().(*net.TCPAddr).IP
-		handler(request, &resp, localAddr.String(), remoteAddr.String())
+		handler(request, resp, localAddr.String(), remoteAddr.String())
 		if verbose {
 			log.Println("Outbound Response")
 			log.Println(resp.String())
 		}
-		writeResponse(conn, &resp)
+		writeResponse(conn, resp)
 
 	}
 }

@@ -3,11 +3,14 @@ package rtsp
 import (
 	"fmt"
 	"net"
+	"strconv"
+	"sync/atomic"
 )
 
 // Client Rtsp client
 type Client struct {
 	conn net.Conn
+	seq  int64
 }
 
 // NewClient instantiates a new client connecting to the address specified
@@ -16,11 +19,13 @@ func NewClient(address string, port int) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{conn: conn}, nil
+	return &Client{conn: conn, seq: 1}, nil
 }
 
 // Send will send a request to the server
 func (c *Client) Send(request *Request) (*Response, error) {
+	request.Headers["CSeq"] = strconv.FormatInt(c.seq, 10)
+	atomic.AddInt64(&c.seq, 1)
 	_, err := writeRequest(c.conn, request)
 	if err != nil {
 		return nil, err

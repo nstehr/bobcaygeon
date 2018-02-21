@@ -57,8 +57,27 @@ func NewAirplayServer(port int, name string, player player.Player) *AirplayServe
 }
 
 //Start starts the airplay server, broadcasting on bonjour, ready to accept requests
-func (a *AirplayServer) Start(verbose bool) {
+func (a *AirplayServer) Start(verbose bool, advertise bool) {
+
+	if advertise {
+		a.initAdvertise()
+	}
+
 	rtspServer := rtsp.NewServer(a.port)
+
+	a.rtspServer = rtspServer
+
+	rtspServer.AddHandler(rtsp.Options, handleOptions)
+	rtspServer.AddHandler(rtsp.Announce, a.handleAnnounce)
+	rtspServer.AddHandler(rtsp.Setup, a.handleSetup)
+	rtspServer.AddHandler(rtsp.Record, a.handleRecord)
+	rtspServer.AddHandler(rtsp.Set_Parameter, handlSetParameter)
+	rtspServer.AddHandler(rtsp.Flush, handlFlush)
+	rtspServer.Start(verbose)
+
+}
+
+func (a *AirplayServer) initAdvertise() {
 	// as per the protocol, the mac address makes up part of the service name
 	macAddr := getMacAddr().String()
 	macAddr = strings.Replace(macAddr, ":", "", -1)
@@ -77,16 +96,6 @@ func (a *AirplayServer) Start(verbose bool) {
 	log.Println("- Port:", a.port)
 
 	a.zerconfServer = server
-	a.rtspServer = rtspServer
-
-	rtspServer.AddHandler(rtsp.Options, handleOptions)
-	rtspServer.AddHandler(rtsp.Announce, a.handleAnnounce)
-	rtspServer.AddHandler(rtsp.Setup, a.handleSetup)
-	rtspServer.AddHandler(rtsp.Record, a.handleRecord)
-	rtspServer.AddHandler(rtsp.Set_Parameter, handlSetParameter)
-	rtspServer.AddHandler(rtsp.Flush, handlFlush)
-	rtspServer.Start(verbose)
-
 }
 
 func handleOptions(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
@@ -144,20 +153,22 @@ func (a *AirplayServer) handleAnnounce(req *rtsp.Request, resp *rtsp.Response, l
 }
 
 func (a *AirplayServer) handleSetup(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
-	transport := req.Headers["Transport"]
-	transportParts := strings.Split(transport, ";")
-	var controlPort int
-	var timingPort int
-	for _, part := range transportParts {
-		if strings.Contains(part, "control_port") {
-			controlPort, _ = strconv.Atoi(strings.Split(part, "=")[1])
+	transport, hasTransport := req.Headers["Transport"]
+	if hasTransport {
+		transportParts := strings.Split(transport, ";")
+		var controlPort int
+		var timingPort int
+		for _, part := range transportParts {
+			if strings.Contains(part, "control_port") {
+				controlPort, _ = strconv.Atoi(strings.Split(part, "=")[1])
+			}
+			if strings.Contains(part, "timing_port") {
+				timingPort, _ = strconv.Atoi(strings.Split(part, "=")[1])
+			}
 		}
-		if strings.Contains(part, "timing_port") {
-			timingPort, _ = strconv.Atoi(strings.Split(part, "=")[1])
-		}
+		a.session.RemotePorts.Control = controlPort
+		a.session.RemotePorts.Timing = timingPort
 	}
-	a.session.RemotePorts.Control = controlPort
-	a.session.RemotePorts.Timing = timingPort
 
 	// hardcode our listening ports for now
 	a.session.LocalPorts.Control = localControlPort
@@ -200,7 +211,10 @@ func (a *AirplayServer) Stop() {
 		a.session.Close()
 	}
 	a.rtspServer.Stop()
-	a.zerconfServer.Shutdown()
+	if a.zerconfServer != nil {
+		a.zerconfServer.Shutdown()
+	}
+
 }
 
 // getMacAddr gets the MAC hardware
