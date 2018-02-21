@@ -2,6 +2,8 @@ package sdp
 
 import (
 	"bufio"
+	"bytes"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
@@ -56,7 +58,7 @@ func Parse(r io.Reader) (*SessionDescription, error) {
 				return nil, err
 			}
 			timing.StartTime = start
-			timing.Stopime = stop
+			timing.StopTime = stop
 			sdp.Timing = timing
 		case "m":
 			// <media> <port>/<number of ports> <proto> <fmt>
@@ -77,4 +79,29 @@ func Parse(r io.Reader) (*SessionDescription, error) {
 
 	}
 	return sdp, nil
+}
+
+//Write writes a SessionDescription struct to the given writer
+func Write(w io.Writer, session *SessionDescription) (n int, err error) {
+	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf("v=%d\r\n", session.Version))
+	// <username> <sess-id> <sess-version> <nettype> <addrtype> <unicast-address>
+	o := session.Origin
+	buf.WriteString(fmt.Sprintf("o=%s %s %s %s %s %s\r\n", o.Username, o.SessionID, o.SessionVersion, o.NetType, o.AddrType, o.UnicastAddress))
+	buf.WriteString(fmt.Sprintf("s=%s\r\n", session.SessionName))
+	// <nettype> <addrtype> <connection-address>
+	c := session.ConnectData
+	buf.WriteString(fmt.Sprintf("c=%s %s %s\r\n", c.NetType, c.AddrType, c.ConnectionAddress))
+	// <start-time> <stop-time>
+	t := session.Timing
+	buf.WriteString(fmt.Sprintf("t=%d %d\r\n", t.StartTime, t.StopTime))
+	for _, m := range session.MediaDescription {
+		// <media> <port>/<number of ports> <proto> <fmt>
+		buf.WriteString(fmt.Sprintf("m=%s %s %s %s\r\n", m.Media, m.Port, m.Proto, m.Fmt))
+	}
+	for k, v := range session.Attributes {
+		buf.WriteString(fmt.Sprintf("a=%s:%s\r\n", k, v))
+	}
+	buf.WriteString(fmt.Sprintf("i=%s\r\n", session.Information))
+	return w.Write(buf.Bytes())
 }

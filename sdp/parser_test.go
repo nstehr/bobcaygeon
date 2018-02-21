@@ -1,12 +1,13 @@
 package sdp
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 )
 
 func TestSDPsParse(t *testing.T) {
-	sdpString := "v=0\r\n" +
+	sdpStr := "v=0\r\n" +
 		"o=AirTunes 1547303657935225515 0 IN IP4 192.168.0.13\r\n" +
 		"s=AirTunes\r\n" +
 		"i=iPhone\r\n" +
@@ -20,7 +21,7 @@ func TestSDPsParse(t *testing.T) {
 		"a=min-latency:11025\r\n" +
 		"a=max-latency:88200\r\n"
 
-	r := strings.NewReader(sdpString)
+	r := strings.NewReader(sdpStr)
 	sdp, err := Parse(r)
 
 	if err != nil {
@@ -106,4 +107,57 @@ func TestSDPsParse(t *testing.T) {
 		t.Error("Unexpected max-latency", a["max-latency"])
 	}
 
+}
+
+func TestSDPWrite(t *testing.T) {
+	sdpStr := "v=0\r\n" +
+		"o=AirTunes 1547303657935225515 0 IN IP4 192.168.0.13\r\n" +
+		"s=AirTunes\r\n" +
+		"c=IN IP4 192.168.0.13\r\n" +
+		"t=0 0\r\n" +
+		"m=audio 0 RTP/AVP 96\r\n" +
+		"a=rtpmap:96 AppleLossless\r\n" +
+		"i=iPhone\r\n"
+
+	session := SessionDescription{}
+	session.Version = 0
+	session.SessionName = "AirTunes"
+	session.Information = "iPhone"
+	origin := Origin{}
+	origin.Username = "AirTunes"
+	origin.SessionID = "1547303657935225515"
+	origin.SessionVersion = "0"
+	origin.NetType = "IN"
+	origin.AddrType = "IP4"
+	origin.UnicastAddress = "192.168.0.13"
+	session.Origin = origin
+	c := ConnectData{}
+	c.AddrType = "IP4"
+	c.NetType = "IN"
+	c.ConnectionAddress = "192.168.0.13"
+	session.ConnectData = c
+	timing := Timing{StartTime: 0, StopTime: 0}
+	session.Timing = timing
+	m := make([]MediaDescription, 1)
+	md := MediaDescription{}
+	md.Media = "audio"
+	md.Fmt = "96"
+	md.Port = "0"
+	md.Proto = "RTP/AVP"
+	m[0] = md
+	session.MediaDescription = m
+	a := make(map[string]string)
+	a["rtpmap"] = "96 AppleLossless"
+	session.Attributes = a
+	var b bytes.Buffer
+	n, err := Write(&b, &session)
+	if err != nil {
+		t.Error("Expected nil err value", err)
+	}
+	if n <= 0 {
+		t.Error("No bytes written")
+	}
+	if sdpStr != b.String() {
+		t.Error("Non matching response generated. Expected:"+sdpStr+"got:", b.String())
+	}
 }

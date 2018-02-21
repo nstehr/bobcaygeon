@@ -20,7 +20,7 @@ type ConnectData struct {
 // Timing timing section of a SDP payload
 type Timing struct {
 	StartTime int
-	Stopime   int
+	StopTime  int
 }
 
 // MediaDescription media description of a SDP payload
