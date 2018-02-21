@@ -74,17 +74,38 @@ func readRequest(r io.Reader) (*Request, error) {
 	return req, nil
 }
 
+// TODO: writeResponse and writeRequest look very similar....
 func writeResponse(w io.Writer, resp *Response) (n int, err error) {
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("%s %d %s\r\n", resp.protocol, resp.Status, resp.Status.String()))
 	for header, value := range resp.Headers {
 		buffer.WriteString(fmt.Sprintf("%s: %s\r\n", header, value))
 	}
+	if resp.Body != "" {
+		buffer.WriteString(fmt.Sprintf("%s: %s\r\n", "Content-Length", strconv.Itoa(len(resp.Body))))
+
+	}
 	buffer.WriteString("\r\n")
 
 	if resp.Body != "" {
-		resp.Headers["Content-Length"] = strconv.Itoa(len(resp.Body))
 		buffer.WriteString(resp.Body)
 	}
+	return w.Write(buffer.Bytes())
+}
+
+func writeRequest(w io.Writer, request *Request) (n int, err error) {
+	var buffer bytes.Buffer
+	buffer.WriteString(fmt.Sprintf("%s %s %s\r\n", strings.ToUpper(request.Method.String()), request.RequestURI, request.protocol))
+	for header, value := range request.Headers {
+		buffer.WriteString(fmt.Sprintf("%s: %s\r\n", header, value))
+	}
+	if len(request.Body) > 0 {
+		buffer.WriteString(fmt.Sprintf("%s: %s\r\n", "Content-Length", strconv.Itoa(len(request.Body))))
+	}
+	buffer.WriteString("\r\n")
+	if len(request.Body) > 0 {
+		buffer.Write(request.Body)
+	}
+
 	return w.Write(buffer.Bytes())
 }

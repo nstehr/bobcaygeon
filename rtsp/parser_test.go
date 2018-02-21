@@ -141,3 +141,59 @@ func TestBuildResponse(t *testing.T) {
 	}
 
 }
+
+func TestWriteRequest(t *testing.T) {
+	requestStr :=
+		"OPTIONS * RTSP/1.0\r\n" +
+			"CSeq: 1\r\n" +
+			"Client-Instance: 67F67C1CAA66A2F4\r\n" +
+			"\r\n"
+	request := Request{}
+	request.Method = Options
+	request.protocol = "RTSP/1.0"
+	request.RequestURI = "*"
+	headers := make(map[string]string)
+	headers["CSeq"] = "1"
+	headers["Client-Instance"] = "67F67C1CAA66A2F4"
+	request.Headers = headers
+	var b bytes.Buffer
+	n, err := writeRequest(&b, &request)
+	if err != nil {
+		t.Error("Expected nil err value", err)
+	}
+	if n <= 0 {
+		t.Error("No bytes written")
+	}
+	if requestStr != b.String() {
+		t.Error("Non matching response generated. Expected:"+requestStr+"got:", b.String())
+	}
+}
+
+func TestWriteRequestBody(t *testing.T) {
+	requestStr :=
+		"OPTIONS * RTSP/1.0\r\n" +
+			"Content-Length: 4\r\n" +
+			"\r\n" +
+			"abcd"
+	request := Request{}
+	request.Method = Options
+	request.protocol = "RTSP/1.0"
+	request.RequestURI = "*"
+	var bodyBuffer bytes.Buffer
+	bodyBuffer.WriteString("a")
+	bodyBuffer.WriteString("b")
+	bodyBuffer.WriteString("c")
+	bodyBuffer.WriteString("d")
+	request.Body = bodyBuffer.Bytes()
+	var b bytes.Buffer
+	n, err := writeRequest(&b, &request)
+	if err != nil {
+		t.Error("Expected nil err value", err)
+	}
+	if n <= 0 {
+		t.Error("No bytes written")
+	}
+	if requestStr != b.String() {
+		t.Error("Non matching response generated. Expected:"+requestStr+"got:", b.String())
+	}
+}
