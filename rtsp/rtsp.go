@@ -28,7 +28,7 @@ func NewResponse() *Response {
 }
 
 func NewRequest() *Request {
-	return &Request{Headers: make(map[string]string)}
+	return &Request{Headers: make(map[string]string), protocol: "RTSP/1.0"}
 }
 
 func (r *Request) String() string {
