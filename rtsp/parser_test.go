@@ -131,7 +131,7 @@ func TestBuildResponse(t *testing.T) {
 	var b bytes.Buffer
 	n, err := writeResponse(&b, &resp)
 	if err != nil {
-		t.Error("Expected nil err value", err)
+		t.Error("Unexpected err value", err)
 	}
 	if n <= 0 {
 		t.Error("No bytes written")
@@ -145,7 +145,6 @@ func TestBuildResponse(t *testing.T) {
 func TestWriteRequest(t *testing.T) {
 	requestStr :=
 		"OPTIONS * RTSP/1.0\r\n" +
-			"CSeq: 1\r\n" +
 			"Client-Instance: 67F67C1CAA66A2F4\r\n" +
 			"\r\n"
 	request := Request{}
@@ -153,7 +152,6 @@ func TestWriteRequest(t *testing.T) {
 	request.protocol = "RTSP/1.0"
 	request.RequestURI = "*"
 	headers := make(map[string]string)
-	headers["CSeq"] = "1"
 	headers["Client-Instance"] = "67F67C1CAA66A2F4"
 	request.Headers = headers
 	var b bytes.Buffer
@@ -195,5 +193,24 @@ func TestWriteRequestBody(t *testing.T) {
 	}
 	if requestStr != b.String() {
 		t.Error("Non matching response generated. Expected:"+requestStr+"got:", b.String())
+	}
+}
+
+func TestParseResponse(t *testing.T) {
+	responseString := "RTSP/1.0 200 OK\r\n" +
+		"Public: ANNOUNCE, SETUP, RECORD, PAUSE, FLUSH, TEARDOWN, OPTIONS,GET_PARAMETER, SET_PARAMETER, POST, GET\r\n" +
+		"Server: AirTunes/130.14\r\n" +
+		"CSeq: 3\r\n" +
+		"\r\n"
+	r := strings.NewReader(responseString)
+	resp, err := readResponse(r)
+	if err != nil {
+		t.Error("Unexpected err value", err)
+	}
+	if resp.Status != Ok {
+		t.Error("Non matching status generated. Expected:"+Ok.String()+"got:", resp.Status.String())
+	}
+	if resp.protocol != "RTSP/1.0" {
+		t.Error("Non matching protocol generated. Expected:"+"RTSP/1.0"+"got:", resp.protocol)
 	}
 }

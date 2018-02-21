@@ -81,14 +81,14 @@ func writeResponse(w io.Writer, resp *Response) (n int, err error) {
 	for header, value := range resp.Headers {
 		buffer.WriteString(fmt.Sprintf("%s: %s\r\n", header, value))
 	}
-	if resp.Body != "" {
-		buffer.WriteString(fmt.Sprintf("%s: %s\r\n", "Content-Length", strconv.Itoa(len(resp.Body))))
+	if len(resp.Body) > 0 {
+		buffer.WriteString(fmt.Sprintf("%s: %d\r\n", "Content-Length", len(resp.Body)))
 
 	}
 	buffer.WriteString("\r\n")
 
-	if resp.Body != "" {
-		buffer.WriteString(resp.Body)
+	if len(resp.Body) > 0 {
+		buffer.Write(resp.Body)
 	}
 	return w.Write(buffer.Bytes())
 }
@@ -108,4 +108,65 @@ func writeRequest(w io.Writer, request *Request) (n int, err error) {
 	}
 
 	return w.Write(buffer.Bytes())
+}
+
+func readResponse(r io.Reader) (*Response, error) {
+	resp := new(Response)
+	buf := bufio.NewReader(r)
+	headers := make(map[string]string)
+	statusLine, err := buf.ReadString('\n')
+	if err != nil {
+		return nil, err
+	}
+	statusLine = strings.Trim(statusLine, "\r\n")
+	statusLineParts := strings.Split(statusLine, " ")
+	if len(statusLineParts) != 3 {
+		return nil, fmt.Errorf("Improperly formatted status line: %s", statusLine)
+	}
+
+	resp.protocol = statusLineParts[0]
+	statusNum, err := strconv.Atoi(statusLineParts[1])
+	if err != nil {
+		return nil, fmt.Errorf("Status not a valid integer: %s", statusLineParts[1])
+	}
+	status, err := getStatus(statusNum)
+
+	if err != nil {
+		return nil, fmt.Errorf("Status does exist in RTSP protocol: %d", statusNum)
+	}
+	resp.Status = status
+
+	// now we can read the headers.
+	// we read a line until we hit the empty line
+	// which indicates all the headers have been processed
+	for {
+		headerField, err := buf.ReadString('\n')
+		if err != nil {
+			return nil, err
+		}
+		headerField = strings.Trim(headerField, "\r\n")
+		if strings.Trim(headerField, "\r\n") == "" {
+			break
+		}
+		headerParts := strings.Split(headerField, ":")
+		if len(headerParts) < 2 {
+			return nil, fmt.Errorf("Inproper header: %s", headerField)
+		}
+		headers[strings.TrimSpace(headerParts[0])] = strings.TrimSpace(headerParts[1])
+	}
+	resp.Headers = headers
+
+	contentLength, hasBody := resp.Headers["Content-Length"]
+	if !hasBody {
+		return resp, nil
+	}
+
+	// now read the body
+	length, _ := strconv.Atoi(contentLength)
+	bodyBuf := make([]byte, length)
+	// makes sure we read the full length of the content
+	io.ReadFull(buf, bodyBuf)
+	resp.Body = bodyBuf
+
+	return resp, nil
 }

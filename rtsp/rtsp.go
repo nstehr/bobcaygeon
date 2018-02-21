@@ -18,7 +18,7 @@ type Request struct {
 // Response RTSP response
 type Response struct {
 	Headers  map[string]string
-	Body     string
+	Body     []byte
 	Status   Status
 	protocol string
 }
@@ -75,4 +75,57 @@ func GetMethods() []string {
 		keys = append(keys, strings.ToUpper(k))
 	}
 	return keys
+}
+
+var statuses = map[int]Status{
+	100: Continue,
+	200: Ok,
+	201: Created,
+	250: LowOnStorage,
+	300: MultipleChoices,
+	301: MovedPermanently,
+	303: SeeOther,
+	305: UseProxy,
+	400: BadRequest,
+	401: Unauthorized,
+	402: PaymentRequired,
+	403: Forbidden,
+	404: NotFound,
+	405: MethodNotAllowed,
+	406: NotAcceptable,
+	407: ProxyAuthenticationRequired,
+	408: RequestTimeout,
+	410: Gone,
+	411: LengthRequired,
+	412: PreconditionFailed,
+	413: RequestEntityTooLarge,
+	414: RequestURITooLong,
+	415: UnsupportedMediaType,
+	451: Invalidparameter,
+	452: IllegalConferenceIdentifier,
+	453: NotEnoughBandwidth,
+	454: SessionNotFound,
+	455: MethodNotValidInThisState,
+	456: HeaderFieldNotValid,
+	457: InvalidRange,
+	458: ParameterIsReadOnly,
+	459: AggregateOperationNotAllowed,
+	460: OnlyAggregateOperationAllowed,
+	461: UnsupportedTransport,
+	462: DestinationUnreachable,
+	500: InternalServerError,
+	501: NotImplemented,
+	502: BadGateway,
+	503: ServiceUnavailable,
+	504: GatewayTimeout,
+	505: RTSPVersionNotSupported,
+	551: Optionnotsupport,
+}
+
+func getStatus(status int) (Status, error) {
+	s, exists := statuses[status]
+	if !exists {
+		return -1, fmt.Errorf("Not valid status: %d", status)
+	}
+	return s, nil
 }
