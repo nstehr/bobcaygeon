@@ -25,6 +25,7 @@ func NewClient(address string, port int) (*Client, error) {
 // Send will send a request to the server
 func (c *Client) Send(request *Request) (*Response, error) {
 	request.Headers["CSeq"] = strconv.FormatInt(c.seq, 10)
+	request.Headers["User-Agent"] = "Bobcaygeon/1.0"
 	atomic.AddInt64(&c.seq, 1)
 	_, err := writeRequest(c.conn, request)
 	if err != nil {
@@ -35,4 +36,14 @@ func (c *Client) Send(request *Request) (*Response, error) {
 		return nil, err
 	}
 	return resp, nil
+}
+
+// LocalAddress returns the local (our) address
+func (c *Client) LocalAddress() string {
+	return c.conn.LocalAddr().(*net.TCPAddr).IP.String()
+}
+
+// RemoteAddress returns the remote address
+func (c *Client) RemoteAddress() string {
+	return c.conn.RemoteAddr().(*net.TCPAddr).IP.String()
 }

@@ -21,7 +21,6 @@ import (
 const (
 	airTunesServiceType = "_raop._tcp"
 	domain              = "local."
-	localDataPort       = 6000
 	localTimingPort     = 6002
 	localControlPort    = 6001
 )
@@ -43,6 +42,7 @@ var airtunesServiceProperties = []string{"txtvers=1",
 // AirplayServer server for handling the RTSP protocol
 type AirplayServer struct {
 	port          int
+	dataPort      int
 	name          string
 	rtspServer    *rtsp.Server
 	zerconfServer *zeroconf.Server
@@ -51,8 +51,8 @@ type AirplayServer struct {
 }
 
 // NewAirplayServer instantiates a new airplayer server
-func NewAirplayServer(port int, name string, player player.Player) *AirplayServer {
-	as := AirplayServer{port: port, name: name, player: player}
+func NewAirplayServer(port int, dataPort int, name string, player player.Player) *AirplayServer {
+	as := AirplayServer{port: port, dataPort: dataPort, name: name, player: player}
 	return &as
 }
 
@@ -127,7 +127,7 @@ func (a *AirplayServer) handleAnnounce(req *rtsp.Request, resp *rtsp.Response, l
 		if a.session != nil {
 			a.session.Close()
 		}
-		var decoder rtsp.Decoder
+		var decoder rtsp.Decrypter
 
 		if key, ok := description.Attributes["rsaaeskey"]; ok {
 			aesKey, err := aeskeyFromRsa(key)
@@ -145,7 +145,7 @@ func (a *AirplayServer) handleAnnounce(req *rtsp.Request, resp *rtsp.Response, l
 				resp.Status = rtsp.InternalServerError
 				return
 			}
-			decoder = NewDecryptingDecoder(aesKey, aesIv)
+			decoder = NewAesDecrypter(aesKey, aesIv)
 		}
 		a.session = rtsp.NewSession(description, decoder)
 	}
@@ -166,6 +166,7 @@ func (a *AirplayServer) handleSetup(req *rtsp.Request, resp *rtsp.Response, loca
 				timingPort, _ = strconv.Atoi(strings.Split(part, "=")[1])
 			}
 		}
+		a.session.RemotePorts.Address = remoteAddress
 		a.session.RemotePorts.Control = controlPort
 		a.session.RemotePorts.Timing = timingPort
 	}
@@ -173,16 +174,16 @@ func (a *AirplayServer) handleSetup(req *rtsp.Request, resp *rtsp.Response, loca
 	// hardcode our listening ports for now
 	a.session.LocalPorts.Control = localControlPort
 	a.session.LocalPorts.Timing = localTimingPort
-	a.session.LocalPorts.Data = localDataPort
+	a.session.LocalPorts.Data = a.dataPort
 
-	resp.Headers["Transport"] = fmt.Sprintf("RTP/AVP/UDP;unicast;mode=record;server_port=%d;control_port=%d;timing_port=%d", localDataPort, localControlPort, localTimingPort)
+	resp.Headers["Transport"] = fmt.Sprintf("RTP/AVP/UDP;unicast;mode=record;server_port=%d;control_port=%d;timing_port=%d", a.dataPort, localControlPort, localTimingPort)
 	resp.Headers["Session"] = "1"
 	resp.Headers["Audio-Jack-Status"] = "connected"
 	resp.Status = rtsp.Ok
 }
 
 func (a *AirplayServer) handleRecord(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
-	err := a.session.Start()
+	err := a.session.StartReceiving()
 	if err != nil {
 		log.Println("could not start streaming session: ", err)
 		resp.Status = rtsp.InternalServerError

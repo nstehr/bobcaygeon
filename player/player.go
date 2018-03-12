@@ -23,10 +23,10 @@ func NewLocalPlayer() *LocalPlayer {
 
 // Play will play the packets received on the specified session
 func (*LocalPlayer) Play(session *rtsp.Session) {
-	go play(session)
+	go PlayStream(session)
 }
 
-func play(session *rtsp.Session) {
+func PlayStream(session *rtsp.Session) {
 	p, err := oto.NewPlayer(44100, 2, 2, 10000)
 	if err != nil {
 		log.Println("error initializing player", err)
@@ -39,7 +39,8 @@ func play(session *rtsp.Session) {
 	} else {
 		decoder = func(data []byte) ([]byte, error) { return data, nil }
 	}
-	for d := range session.OutputChan {
+
+	for d := range session.DataChan {
 		decoded, err := decoder(d)
 		if err != nil {
 			log.Println("Problem decoding packet")

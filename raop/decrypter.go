@@ -5,18 +5,19 @@ import (
 	"crypto/cipher"
 )
 
-// DecryptingDecoder decoder capable of decoding the encrypted packet and treating it as ALAC encoded
-type DecryptingDecoder struct {
+// AesDecrypter decoder capable of decoding the encrypted packet and treating it as ALAC encoded
+type AesDecrypter struct {
 	aesKey []byte
 	aesIv  []byte
 }
 
-// NewDecryptingAlacDecoder Returns a new decoder that will unencrypt and decode the packet as a Apple Lossless encoded packet
-func NewDecryptingDecoder(aesKey []byte, aesIv []byte) *DecryptingDecoder {
-	return &DecryptingDecoder{aesKey: aesKey, aesIv: aesIv}
+// NewAesDecrypter Returns a new decoder that will unencrypt and decode the packet as a Apple Lossless encoded packet
+func NewAesDecrypter(aesKey []byte, aesIv []byte) *AesDecrypter {
+	return &AesDecrypter{aesKey: aesKey, aesIv: aesIv}
 }
 
-func (d *DecryptingDecoder) Decode(data []byte) ([]byte, error) {
+// Decode decodes the supplied data using AES
+func (d *AesDecrypter) Decode(data []byte) ([]byte, error) {
 	block, err := aes.NewCipher(d.aesKey)
 	if err != nil {
 		return nil, err

@@ -22,6 +22,7 @@ import (
 var (
 	name        = flag.String("name", "Bobcaygeon", "The name for the service.")
 	port        = flag.Int("port", 5000, "Set the port the service is listening to.")
+	dataPort    = flag.Int("dataPort", 6000, "The port to listen for streaming data")
 	verbose     = flag.Bool("verbose", false, "Verbose logging; logs requests and responses")
 	clusterPort = flag.Int("clusterPort", 7676, "Port to listen for cluster events")
 )
@@ -90,7 +91,7 @@ func main() {
 		}
 		// since we are the leader, we will start the airplay server to accept the packets
 		// and eventually forward to other members
-		forwardingPlayer := player.NewForwardingPlayer()
+		forwardingPlayer := cluster.NewForwardingPlayer()
 		streamPlayer = forwardingPlayer
 		delegates = append(delegates, forwardingPlayer)
 
@@ -108,7 +109,7 @@ func main() {
 		streamPlayer = player.NewLocalPlayer()
 	}
 
-	airplayServer := raop.NewAirplayServer(*port, *name, streamPlayer)
+	airplayServer := raop.NewAirplayServer(*port, *dataPort, *name, streamPlayer)
 	go airplayServer.Start(*verbose, advertise)
 	defer airplayServer.Stop()
 

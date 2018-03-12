@@ -12,13 +12,14 @@ const (
 	readBuffer = 1024 * 16
 )
 
-// Decoder decodes a received packet
-type Decoder interface {
+// Decrypter decrypts a received packet
+type Decrypter interface {
 	Decode([]byte) ([]byte, error)
 }
 
 // PortSet wraps the ports needed for an RTSP stream
 type PortSet struct {
+	Address string
 	Control int
 	Timing  int
 	Data    int
@@ -27,26 +28,26 @@ type PortSet struct {
 // Session a streaming session
 type Session struct {
 	Description *sdp.SessionDescription
-	decoder     Decoder
+	decrypter   Decrypter
 	RemotePorts PortSet
 	LocalPorts  PortSet
 	dataConn    net.Conn // even though we have all ports, will only open up the data connection to start
-	OutputChan  chan []byte
+	DataChan    chan []byte
 }
 
 // NewSession instantiates a new Session
-func NewSession(description *sdp.SessionDescription, decoder Decoder) *Session {
-	return &Session{Description: description, decoder: decoder, OutputChan: make(chan []byte, 1000)}
+func NewSession(description *sdp.SessionDescription, decrypter Decrypter) *Session {
+	return &Session{Description: description, decrypter: decrypter, DataChan: make(chan []byte, 1000)}
 }
 
 // Close closes a session
 func (s *Session) Close() {
 	s.dataConn.Close()
-	close(s.OutputChan)
+	close(s.DataChan)
 }
 
-// Start starts a session for listening for data
-func (s *Session) Start() error {
+// StartReceiving starts a session for listening for data
+func (s *Session) StartReceiving() error {
 	addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", s.LocalPorts.Data))
 	if err != nil {
 		return err
@@ -69,13 +70,37 @@ func (s *Session) Start() error {
 			}
 			packet := buf[:n]
 			// send the data to the decoder
-			d, err := s.decoder.Decode(packet)
+			d := packet
+			if s.decrypter != nil {
+				d, err = s.decrypter.Decode(packet)
+			}
 			if err != nil {
 				log.Println("Problem decoding packet", err)
 				continue
 			}
 			// once decoded, we can pass it along to be played
-			s.OutputChan <- d
+			send := make([]byte, len(d))
+			copy(send, d)
+			s.DataChan <- send
+		}
+	}()
+	return nil
+}
+
+// StartSending starts a session for sending data
+func (s *Session) StartSending() error {
+
+	conn, err := net.Dial("udp", fmt.Sprintf("%s:%d", s.RemotePorts.Address, s.RemotePorts.Data))
+	if err != nil {
+		return err
+	}
+	// keep track of the actual connection so we close it later
+	s.dataConn = conn
+	// start listening for audio data
+	log.Println("Session started.  Will start sending packets")
+	go func() {
+		for pkt := range s.DataChan {
+			conn.Write(pkt)
 		}
 	}()
 	return nil

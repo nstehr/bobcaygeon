@@ -46,6 +46,6 @@ type SessionDescription struct {
 // NewSessionDescription instantiates a SessionDescription struct
 func NewSessionDescription() *SessionDescription {
 	var mediaDescription []MediaDescription
-	sdp := SessionDescription{Attributes: make(map[string]string), MediaDescription: mediaDescription}
+	sdp := SessionDescription{Version: 0, Attributes: make(map[string]string), MediaDescription: mediaDescription}
 	return &sdp
 }
