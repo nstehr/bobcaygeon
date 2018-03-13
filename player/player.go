@@ -2,7 +2,6 @@ package player
 
 import (
 	"log"
-	"strings"
 
 	"github.com/hajimehoshi/oto"
 	"github.com/nstehr/bobcaygeon/rtsp"
@@ -23,23 +22,16 @@ func NewLocalPlayer() *LocalPlayer {
 
 // Play will play the packets received on the specified session
 func (*LocalPlayer) Play(session *rtsp.Session) {
-	go PlayStream(session)
+	go playStream(session)
 }
 
-func PlayStream(session *rtsp.Session) {
+func playStream(session *rtsp.Session) {
 	p, err := oto.NewPlayer(44100, 2, 2, 10000)
 	if err != nil {
 		log.Println("error initializing player", err)
 		return
 	}
-	var decoder codecHandler
-	rtpmap := session.Description.Attributes["rtpmap"]
-	if strings.Contains(rtpmap, "AppleLossless") {
-		decoder = codecMap["AppleLossless"]
-	} else {
-		decoder = func(data []byte) ([]byte, error) { return data, nil }
-	}
-
+	decoder := GetCodec(session)
 	for d := range session.DataChan {
 		decoded, err := decoder(d)
 		if err != nil {

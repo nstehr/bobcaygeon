@@ -8,7 +8,9 @@ import (
 	"net"
 	"sync"
 
+	"github.com/hajimehoshi/oto"
 	"github.com/hashicorp/memberlist"
+	"github.com/nstehr/bobcaygeon/player"
 	"github.com/nstehr/bobcaygeon/raop"
 	"github.com/nstehr/bobcaygeon/rtsp"
 )
@@ -83,14 +85,31 @@ func (*ForwardingPlayer) NotifyUpdate(node *memberlist.Node) {
 // Play will play the packets received on the specified session
 // and forward the packets on
 func (p *ForwardingPlayer) Play(session *rtsp.Session) {
-	//go player.PlayStream(session)
+	// TODO: refactor so both we don't need to init oto player here too
+	ap, err := oto.NewPlayer(44100, 2, 2, 10000)
+	if err != nil {
+		log.Println("error initializing player", err)
+		return
+	}
+	decoder := player.GetCodec(session)
 
 	go func() {
 		for d := range session.DataChan {
-			sessions := p.sessions.getSessions()
-			for _, s := range sessions {
-				s.DataChan <- d
+			// will play the audio
+			decoded, err := decoder(d)
+			if err != nil {
+				log.Println("Problem decoding packet")
 			}
+			ap.Write(decoded)
+
+			// will forward the audio to other clients
+			go func(pkt []byte) {
+				sessions := p.sessions.getSessions()
+				for _, s := range sessions {
+					s.DataChan <- pkt
+				}
+			}(d)
+
 		}
 	}()
 
