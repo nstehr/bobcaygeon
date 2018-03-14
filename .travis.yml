@@ -15,9 +15,8 @@ deploy:
   skip_cleanup: true # Important, otherwise the build output would be purged.
   api_key:
     secure: Lx+rl/fl/VnUTcP3q3oiEj++V0w1MKTvZHZkK7DeTf6v7qq4Az2zcCxKhzRQe+UpJ2dAh1bII9Ym2M8T+qCZP2YhMImjfBLfc4W7NEHn/9rkBPsYJ93UEhrT02DOn9qrWio0xn1UyH/h8snzwiXKuaovtu0k8Sw8jIsmy6FeHD8XOdjJ85ic6MiK88+ptija4t/G+sNWjFYCCha8wMpbuPtXl78Ik/xYHt33wHL+4JWWyLRT+MLuoIOuv+mryNbQzroxHRJxvjStRP4uDJfPZ0nMyxTqs2+3dtdwMs0KA7f/d11bw7ognnnS1sKyb87XfCpxkVUBRD2nE0hvlE68NXf/PxjnmD9ULC6a0g80W3O03a2MjpYdI8QfRoMxZ1yK4SPfdxN/SeAIJq3MzVhQVgyKlSMHp4Ksaq/cerhGtT/Zgb2W+/adVKK+jEfJhbudOZV1KmOW72PG2Mj5Qtk/0I+YsSPJFN6XzMZyU8iCsJGOfMfmOdAPGgtmCIDKZwa3sfUAsZ3jxFAztojwEffcoBreyn1Wzh0IQ7wxoPJulXc3HuAiVphShK7aRjSG34zk8AiIDXK+efzb119aeklUFBK5FmIsMZ+6/A0CcpZjbK3HobmYlO1v1+vj0Xzunv3BZwABOlN88coXshWYh7/cITcXx7aPGZ8AAyictvQPWS8=
-  file: 
-  - bcg-osx
-  - bcg-linux
+  file_glob: true
+  file: "bcg-*"
   on:
     repo: nstehr/bobcaygeon
     tags: true # The deployment happens only if the commit has a tag.
