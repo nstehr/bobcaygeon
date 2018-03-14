@@ -8,7 +8,7 @@ Multi room speaker application.
 Bobcaygeon is a multi-room speaker application.  Built on top of Apple airplay, the goal is an application that will run on a raspberry pi (or similar hardware) capable of playing streamed music on one or many hardware deployments.  With an initial goal of the same music on every speaker, and eventual goal of more fine grained control.
 
 ## Current Status
-Full functional airplay server; no multi-room capability.
+Full functional airplay server; Basic multi-room functionality.  Will stream to multiple clients.
 Currently tested on OSX, not on raspberry pi yet
 
 ## Build
