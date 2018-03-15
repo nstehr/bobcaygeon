@@ -118,12 +118,10 @@ func TestParseImproperHeader(t *testing.T) {
 func TestBuildResponse(t *testing.T) {
 	respString :=
 		"RTSP/1.0 200 Ok\r\n" +
-			"CSeq: 1\r\n" +
 			"Client-Instance: 67F67C1CAA66A2F4\r\n" +
 			"\r\n"
 	resp := Response{}
 	headers := make(map[string]string)
-	headers["CSeq"] = "1"
 	headers["Client-Instance"] = "67F67C1CAA66A2F4"
 	resp.protocol = "RTSP/1.0"
 	resp.Headers = headers
