@@ -1,5 +1,5 @@
 #!/bin/bash
-if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
+if [[ $TRAVIS_OS_NAME == 'linux' ]]; then
   $GOPATH/bin/goveralls -v -service=travis-ci
 fi
 
