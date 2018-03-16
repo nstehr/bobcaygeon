@@ -22,7 +22,7 @@ do
     fi  
 
 done
-if [[ $TRAVIS_OS_NAME == 'linux' ]]
+if [[ $TRAVIS_OS_NAME == 'osx' ]]
 then
    $GOPATH/bin/goveralls -v -service=travis-ci
 fi  
