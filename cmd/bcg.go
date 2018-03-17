@@ -73,13 +73,30 @@ func main() {
 	}
 	log.Println("searching for cluster to join")
 	var entry *zeroconf.ServiceEntry
+	foundEntry := make(chan *zeroconf.ServiceEntry)
+	// what we do is spin of a goroutine that will process the entries registered in
+	// mDNS for our service.  As soon as we detect there is one with an IP4 address
+	// we send it off and cancel to stop the searching.
+	// there is an issue, https://github.com/grandcat/zeroconf/issues/27 where we
+	// could get an entry back without an IP4 addr, it will come in later as an update
+	// so we wait until we find the addr, or timeout
+	go func(results <-chan *zeroconf.ServiceEntry, foundEntry chan *zeroconf.ServiceEntry) {
+		for e := range results {
+			if (len(e.AddrIPv4)) > 0 {
+				foundEntry <- e
+				cancel()
+			}
+		}
+	}(entries, foundEntry)
+
 	select {
 	// this should be ok, since we only expect one service of the _bobcaygeon_ type to be found
-	case entry = <-entries:
+	case entry = <-foundEntry:
 		log.Println("Found cluster to join")
 	case <-ctx.Done():
 		log.Println("cluster search timeout, no cluster to join")
 	}
+
 	// if the entry is nil, then we didn't find a cluster to join, so assume leadership
 	if entry == nil {
 		log.Println("starting cluster, I am now initial leader")

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/hajimehoshi/oto"
 	"github.com/hashicorp/memberlist"
@@ -118,6 +119,20 @@ func (p *ForwardingPlayer) Play(session *rtsp.Session) {
 func (p *ForwardingPlayer) initSession(nodeName string, ip net.IP, port int) {
 
 	session, err := raop.EstablishSession(ip.String(), port)
+
+	// do retry if we can't establish a session.  We may get
+	// the node join event before the node as fully started
+	// the rtsp server, so we try a few times
+	for i := 0; i < 3; i++ {
+		if session != nil {
+			break
+		}
+		if err != nil {
+			log.Println(fmt.Sprintf("Error connecting to RTSP server: %s:%d. Retrying", ip.String(), port))
+		}
+		time.Sleep(3 * time.Second)
+		session, err = raop.EstablishSession(ip.String(), port)
+	}
 
 	if err != nil {
 		log.Println(fmt.Sprintf("Error connecting to RTSP server: %s:%d", ip.String(), port), err)
