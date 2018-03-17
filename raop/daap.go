@@ -12,7 +12,7 @@ type contentType struct {
 }
 
 // based on: https://github.com/kylewelsby/daap/blob/master/index.js
-func parseDaap(daap []byte) {
+func parseDaap(daap []byte) map[string]interface{} {
 	i := 8
 	parsedData := make(map[string]interface{})
 	for i < len(daap) {
@@ -31,6 +31,7 @@ func parseDaap(daap []byte) {
 		i = i + itemLength + 8
 	}
 	log.Println(parsedData)
+	return parsedData
 }
 
 func getContentType(code string) contentType {
