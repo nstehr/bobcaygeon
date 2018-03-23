@@ -33,6 +33,7 @@ func (sm *stateMachine) transistion(client *rtsp.Client, session *rtsp.Session) 
 	return sm.currentState != nil, err
 }
 
+// EstablishSession establishes a session that is ready to have data streamed through it
 func EstablishSession(ip string, port int) (*rtsp.Session, error) {
 
 	client, err := rtsp.NewClient(ip, port)

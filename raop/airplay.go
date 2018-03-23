@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"strconv"
@@ -198,6 +199,14 @@ func (a *AirplayServer) handleRecord(req *rtsp.Request, resp *rtsp.Response, loc
 func handlSetParameter(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
 	if req.Headers["Content-Type"] == "application/x-dmap-tagged" {
 		parseDaap(req.Body)
+	} else if req.Headers["Content-Type"] == "image/jpeg" {
+		go func(data []byte) {
+			err := ioutil.WriteFile("img.jpg", data, 0644)
+			if err != nil {
+				log.Println("Couldn't save album art", err)
+			}
+		}(req.Body)
+
 	}
 	resp.Status = rtsp.Ok
 }
