@@ -106,7 +106,7 @@ func handleOptions(req *rtsp.Request, resp *rtsp.Response, localAddress string, 
 	if !exists {
 		return
 	}
-	log.Println(fmt.Sprintf("Apple Challenge detected: %s", appleChallenge))
+	log.Printf("Apple Challenge detected: %s\n", appleChallenge)
 	challengResponse, err := generateChallengeResponse(appleChallenge, getMacAddr(), localAddress)
 	if err != nil {
 		log.Println("Error generating challenge response: ", err.Error())

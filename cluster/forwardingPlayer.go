@@ -128,7 +128,7 @@ func (p *ForwardingPlayer) initSession(nodeName string, ip net.IP, port int) {
 			break
 		}
 		if err != nil {
-			log.Println(fmt.Sprintf("Error connecting to RTSP server: %s:%d. Retrying", ip.String(), port))
+			log.Printf("Error connecting to RTSP server: %s:%d. Retrying\n", ip.String(), port)
 		}
 		time.Sleep(3 * time.Second)
 		session, err = raop.EstablishSession(ip.String(), port)
@@ -139,7 +139,7 @@ func (p *ForwardingPlayer) initSession(nodeName string, ip net.IP, port int) {
 		return
 	}
 
-	log.Println(fmt.Sprintf("Session established for %s (%s:%d).", nodeName, ip.String(), port))
+	log.Printf("Session established for %s (%s:%d).\n", nodeName, ip.String(), port)
 
 	session.StartSending()
 	p.sessions.addSession(nodeName, session)
