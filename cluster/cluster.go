@@ -28,6 +28,7 @@ type Delegate struct {
 // NodeMeta is used to retrieve meta-data about the current node
 // when broadcasting an alive message.
 func (d Delegate) NodeMeta(limit int) []byte {
+	log.Printf("Limit is: %d\n", limit)
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 

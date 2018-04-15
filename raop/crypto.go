@@ -122,7 +122,7 @@ func generateChallengeResponse(challenge string, macAddr net.HardwareAddr, ipAdd
 		signedResponse64 = base64unpad(signedResponse64)
 	}
 
-	log.Println(fmt.Sprintf("Generated challenge response: %s", signedResponse64))
+	log.Printf("Generated challenge response: %s\n", signedResponse64)
 	return signedResponse64, nil
 }
 

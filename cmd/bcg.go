@@ -35,7 +35,7 @@ func main() {
 	flag.Parse()
 	// generate a name for this node and initialize the distributed member list
 	nodeName := petname.Generate(2, "-")
-	log.Println(fmt.Sprintf("Starting node: %s", nodeName))
+	log.Printf("Starting node: %s\n", nodeName)
 	c := memberlist.DefaultLocalConfig()
 	c.Name = nodeName
 	c.BindPort = *clusterPort

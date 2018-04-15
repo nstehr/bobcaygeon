@@ -39,7 +39,7 @@ func (r *Server) Stop() {
 
 // Start creates listening socket for the RTSP connection
 func (r *Server) Start(verbose bool) {
-	log.Println(fmt.Sprintf("Starting RTSP server on port: %d", r.port))
+	log.Printf("Starting RTSP server on port: %d\n", r.port)
 	tcpListen, err := net.Listen("tcp", fmt.Sprintf(":%d", r.port))
 	if err != nil {
 		log.Fatal("Error listening:", err.Error())
