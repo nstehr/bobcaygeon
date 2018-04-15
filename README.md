@@ -17,6 +17,9 @@ Currently tested on OSX, not on raspberry pi yet
 I've followed the practice of committing vendor (https://github.com/golang/dep/blob/master/docs/FAQ.md#should-i-commit-my-vendor-directory)
 1. `go build cmd/bcg.go`
 
+To regenerate the the grpc service:
+`protoc -I api/ --go_out=plugins=grpc:api api/bobcaygeon.proto`
+
 ## Run
 ```
 -name string
