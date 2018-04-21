@@ -16,6 +16,7 @@ import (
 	"github.com/nstehr/bobcaygeon/sdp"
 )
 
+// dummy
 // sets up the properties needed to make us discoverable as a airtunes service
 // https://github.com/fgp/AirReceiver/blob/STABLE_1_X/src/main/java/org/phlo/AirReceiver/AirReceiver.java#L88
 // https://nto.github.io/AirPlay.html#audio
