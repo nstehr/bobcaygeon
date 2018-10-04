@@ -1,0 +1,19 @@
+syntax = "proto3";
+package api;
+
+service Management {
+  rpc ToggleBroadcast (BroadcastRequest) returns (ManagementResponse) {}
+  rpc ChangeName (NameChangeRequest) returns (ManagementResponse) {}
+}
+
+message BroadcastRequest {
+  bool shouldBroadcast = 1;
+}
+
+message NameChangeRequest {
+  string newName = 1;
+}
+
+message ManagementResponse {
+  int32 returnCode = 1;
+}

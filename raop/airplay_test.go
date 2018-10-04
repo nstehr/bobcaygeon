@@ -75,3 +75,19 @@ func TestHandleSetup(t *testing.T) {
 		t.Error(fmt.Sprintf("Expected: %s\r\n Got: %s", "connected", val))
 	}
 }
+
+func TestChangeName(t *testing.T) {
+	a := NewAirplayServer(444, 333, "Test", FakePlayer{})
+	err := a.ChangeName("Foo")
+	if err != nil {
+		t.Error("Unexpected error", err)
+	}
+}
+
+func TestChangeNameFailOnEmpty(t *testing.T) {
+	a := NewAirplayServer(444, 333, "Test", FakePlayer{})
+	err := a.ChangeName("")
+	if err == nil {
+		t.Error("Expected error, received none")
+	}
+}

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -12,19 +13,22 @@ import (
 
 	"github.com/grandcat/zeroconf"
 	"github.com/hashicorp/memberlist"
+	"github.com/nstehr/bobcaygeon/api"
 	"github.com/nstehr/bobcaygeon/cluster"
 	"github.com/nstehr/bobcaygeon/player"
 	"github.com/nstehr/bobcaygeon/raop"
+	"google.golang.org/grpc"
 
 	petname "github.com/dustinkirkland/golang-petname"
 )
 
 var (
-	name        = flag.String("name", "Bobcaygeon", "The name for the service.")
-	port        = flag.Int("port", 5000, "Set the port the service is listening to.")
-	dataPort    = flag.Int("dataPort", 6000, "The port to listen for streaming data")
-	verbose     = flag.Bool("verbose", false, "Verbose logging; logs requests and responses")
-	clusterPort = flag.Int("clusterPort", 7676, "Port to listen for cluster events")
+	name          = flag.String("name", "Bobcaygeon", "The name for the service.")
+	port          = flag.Int("port", 5000, "Set the port the service is listening to.")
+	dataPort      = flag.Int("dataPort", 6000, "The port to listen for streaming data")
+	verbose       = flag.Bool("verbose", false, "Verbose logging; logs requests and responses")
+	clusterPort   = flag.Int("clusterPort", 7676, "Port to listen for cluster events")
+	apiServerPort = flag.Int("apiServerPort", 7777, "Port to listen for API server")
 )
 
 const (
@@ -130,6 +134,9 @@ func main() {
 	go airplayServer.Start(*verbose, advertise)
 	defer airplayServer.Stop()
 
+	// start the API server
+	go startApiServer(*apiServerPort, airplayServer)
+
 	// Clean exit.
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
@@ -141,4 +148,22 @@ func main() {
 	}
 
 	log.Println("Goodbye.")
+}
+
+func startApiServer(apiServerPort int, airplayServer *raop.AirplayServer) {
+	// create a listener on TCP port 7777
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 7777))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	// create a server instance
+	s := api.NewServer(airplayServer)
+	// create a gRPC server object
+	grpcServer := grpc.NewServer()
+	// attach the Ping service to the server
+	api.RegisterManagementServer(grpcServer, s)
+	log.Printf("Starting API server on port: %d", apiServerPort)
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %s", err)
+	}
 }

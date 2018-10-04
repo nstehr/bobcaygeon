@@ -1,8 +1,9 @@
 language: go
 go:
-- tip
+- 1.9.2
+sudo: required
 before_install:
-- go get github.com/mattn/goveralls
+- "./before_install.sh"
 os:
 - linux
 - osx

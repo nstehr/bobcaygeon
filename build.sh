@@ -27,4 +27,5 @@ then
    $GOPATH/bin/goveralls -coverprofile=acc.out -service=travis-ci
 fi  
 
+protoc -I api/ --go_out=plugins=grpc:api api/bobcaygeon.proto
 go build -o bcg-$TRAVIS_OS_NAME cmd/bcg.go

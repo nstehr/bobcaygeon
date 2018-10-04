@@ -3,6 +3,7 @@ package raop
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -76,6 +77,44 @@ func (a *AirplayServer) Start(verbose bool, advertise bool) {
 	rtspServer.AddHandler(rtsp.Flush, handlFlush)
 	rtspServer.Start(verbose)
 
+}
+
+// ToggleAdvertise will toggle whether or not to advertise as an airplay service
+func (a *AirplayServer) ToggleAdvertise(shouldAdvertise bool) {
+	if !shouldAdvertise {
+		if a.zerconfServer == nil {
+			log.Println("Currently not advertising, ignoring turn off advertise request")
+			return
+		}
+		// if we have a zerconfServer reference it means we are already advertising, so
+		// stop it
+		log.Printf("Shutting down broadcasting of %s\n", a.name)
+		a.zerconfServer.Shutdown()
+		a.zerconfServer = nil
+
+	} else {
+		if a.zerconfServer != nil {
+			log.Println("Currently advertising, ignoring turn on advertise request")
+			return
+		}
+		a.initAdvertise()
+	}
+}
+
+//ChangeName will change the name of the broadcast service
+func (a *AirplayServer) ChangeName(newName string) error {
+	if strings.TrimSpace(newName) == "" {
+		return errors.New("New name must be non-empty")
+	}
+	a.name = strings.TrimSpace(newName)
+	// if we are advertising, stop the zeroconf server and start it so it
+	// reflects the name change
+	if a.zerconfServer != nil {
+		a.zerconfServer.Shutdown()
+		a.zerconfServer = nil
+		a.initAdvertise()
+	}
+	return nil
 }
 
 func (a *AirplayServer) initAdvertise() {
