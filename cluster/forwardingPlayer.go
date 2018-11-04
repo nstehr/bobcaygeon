@@ -1,11 +1,10 @@
 package cluster
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
 	"log"
 	"net"
+	"strconv"
 	"sync"
 	"time"
 
@@ -18,19 +17,33 @@ import (
 
 // ForwardingPlayer will forward data packets to member nodes
 type ForwardingPlayer struct {
+	volLock  sync.RWMutex
+	volume   float64
 	sessions *sessionMap
+}
+
+// represents what a client calling an RTSP
+// server would want for a session; the actual
+// session for data transfer, as well the port
+// for making RTSP calls for control
+
+//TODO: should this be promoted to the RTSP package and
+// returned by raop.EstablishSession ??
+type clientSession struct {
+	*rtsp.Session
+	rtspPort int
 }
 
 type sessionMap struct {
 	sync.RWMutex
-	sessions map[string]*rtsp.Session
+	sessions map[string]*clientSession
 }
 
 func newSessionMap() *sessionMap {
-	return &sessionMap{sessions: make(map[string]*rtsp.Session)}
+	return &sessionMap{sessions: make(map[string]*clientSession)}
 }
 
-func (sm *sessionMap) addSession(name string, session *rtsp.Session) {
+func (sm *sessionMap) addSession(name string, session *clientSession) {
 	sm.Lock()
 	defer sm.Unlock()
 	sm.sessions[name] = session
@@ -42,10 +55,10 @@ func (sm *sessionMap) removeSession(name string) {
 	delete(sm.sessions, name)
 }
 
-func (sm *sessionMap) getSessions() []*rtsp.Session {
+func (sm *sessionMap) getSessions() []*clientSession {
 	sm.RLock()
 	defer sm.RUnlock()
-	sessions := make([]*rtsp.Session, 0, len(sm.sessions))
+	sessions := make([]*clientSession, 0, len(sm.sessions))
 
 	for _, value := range sm.sessions {
 		sessions = append(sessions, value)
@@ -55,16 +68,14 @@ func (sm *sessionMap) getSessions() []*rtsp.Session {
 
 // NewForwardingPlayer instantiates a new ForwardingPlayer
 func NewForwardingPlayer() *ForwardingPlayer {
-	return &ForwardingPlayer{sessions: newSessionMap()}
+	return &ForwardingPlayer{sessions: newSessionMap(), volume: 1}
 }
 
 // NotifyJoin is invoked when a node is detected to have joined.
 // The Node argument must not be modified.
 func (p *ForwardingPlayer) NotifyJoin(node *memberlist.Node) {
 	log.Println("Node Joined " + node.Name)
-	dec := gob.NewDecoder(bytes.NewReader(node.Meta))
-	var meta NodeMeta
-	dec.Decode(&meta)
+	meta := DecodeNodeMeta(node.Meta)
 	go p.initSession(node.Name, node.Addr, meta.RtspPort)
 }
 
@@ -83,6 +94,34 @@ func (*ForwardingPlayer) NotifyUpdate(node *memberlist.Node) {
 
 }
 
+// SetVolume accepts a float between 0 (mute) and 1 (full volume)
+func (p *ForwardingPlayer) SetVolume(volume float64) {
+	p.volLock.Lock()
+	defer p.volLock.Unlock()
+	p.volume = volume
+	// as a first pass all down stream clients will have the same
+	// volume; adjusting the volume of the forwarding player will
+	// forward the volume settings
+	go func() {
+		for _, s := range p.sessions.getSessions() {
+			client, err := rtsp.NewClient(s.RemotePorts.Address, s.rtspPort)
+			if err != nil {
+				log.Println("Error establishing RTSP connection", err)
+				continue
+			}
+			req := rtsp.NewRequest()
+			req.Method = rtsp.Set_Parameter
+			sessionID := strconv.FormatInt(time.Now().Unix(), 10)
+			localAddress := client.LocalAddress()
+			req.RequestURI = fmt.Sprintf("rtsp://%s/%s", localAddress, sessionID)
+			req.Headers["Content-Type"] = "text/parameters"
+			body := fmt.Sprintf("volume: %f", prepareVolume(volume))
+			req.Body = []byte(body)
+			client.Send(req)
+		}
+	}()
+}
+
 // Play will play the packets received on the specified session
 // and forward the packets on
 func (p *ForwardingPlayer) Play(session *rtsp.Session) {
@@ -96,12 +135,15 @@ func (p *ForwardingPlayer) Play(session *rtsp.Session) {
 
 	go func() {
 		for d := range session.DataChan {
+			p.volLock.RLock()
+			vol := p.volume
+			p.volLock.RUnlock()
 			// will play the audio
 			decoded, err := decoder(d)
 			if err != nil {
 				log.Println("Problem decoding packet")
 			}
-			ap.Write(decoded)
+			ap.Write(player.AdjustAudio(decoded, vol))
 
 			// will forward the audio to other clients
 			go func(pkt []byte) {
@@ -142,6 +184,29 @@ func (p *ForwardingPlayer) initSession(nodeName string, ip net.IP, port int) {
 	log.Printf("Session established for %s (%s:%d).\n", nodeName, ip.String(), port)
 
 	session.StartSending()
-	p.sessions.addSession(nodeName, session)
+	cSession := &clientSession{session, port}
+	p.sessions.addSession(nodeName, cSession)
 
+}
+
+// airplay server will apply a normalization,
+// we have the raw volume on a scale of 0 to 1,
+// so we build the proper format
+func prepareVolume(vol float64) float64 {
+	// 0 volume means mute, airplay servers understands
+	// mute as -144
+	if vol == 0 {
+		return -144
+	}
+
+	// 1 is full volume, for airplay servers
+	// this means 0, as in 0 volume adjustment needed
+	if vol == 1 {
+		return 0
+	}
+
+	// the remaining values needs to be between -30 and 0,
+	adjusted := (vol * 30) - 30
+
+	return adjusted
 }

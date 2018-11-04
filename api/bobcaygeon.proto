@@ -3,7 +3,7 @@ package api;
 
 service Management {
   rpc ToggleBroadcast (BroadcastRequest) returns (ManagementResponse) {}
-  rpc ChangeName (NameChangeRequest) returns (ManagementResponse) {}
+  rpc ChangeServiceName (NameChangeRequest) returns (ManagementResponse) {}
 }
 
 message BroadcastRequest {

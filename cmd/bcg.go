@@ -40,11 +40,12 @@ func main() {
 	// generate a name for this node and initialize the distributed member list
 	nodeName := petname.Generate(2, "-")
 	log.Printf("Starting node: %s\n", nodeName)
+	metaData := &cluster.NodeMeta{RtspPort: *port}
 	c := memberlist.DefaultLocalConfig()
 	c.Name = nodeName
 	c.BindPort = *clusterPort
 	c.AdvertisePort = *clusterPort
-	c.Delegate = cluster.Delegate{MetaData: cluster.NodeMeta{RtspPort: *port}}
+	c.Delegate = cluster.Delegate{MetaData: metaData}
 
 	list, err := memberlist.Create(c)
 	if err != nil {
@@ -135,7 +136,7 @@ func main() {
 	defer airplayServer.Stop()
 
 	// start the API server
-	go startApiServer(*apiServerPort, airplayServer)
+	go startAPIServer(*apiServerPort, airplayServer, list, metaData)
 
 	// Clean exit.
 	sig := make(chan os.Signal, 1)
@@ -150,9 +151,9 @@ func main() {
 	log.Println("Goodbye.")
 }
 
-func startApiServer(apiServerPort int, airplayServer *raop.AirplayServer) {
-	// create a listener on TCP port 7777
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 7777))
+func startAPIServer(apiServerPort int, airplayServer *raop.AirplayServer, nodes *memberlist.Memberlist, meta *cluster.NodeMeta) {
+	// create a listener
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", apiServerPort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

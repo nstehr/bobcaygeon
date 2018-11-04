@@ -22,13 +22,12 @@ type EventDelegate struct {
 
 // Delegate handles memberlist events
 type Delegate struct {
-	MetaData NodeMeta
+	MetaData *NodeMeta
 }
 
 // NodeMeta is used to retrieve meta-data about the current node
 // when broadcasting an alive message.
 func (d Delegate) NodeMeta(limit int) []byte {
-	log.Printf("Limit is: %d\n", limit)
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 
@@ -85,4 +84,12 @@ func (ed *EventDelegate) NotifyUpdate(node *memberlist.Node) {
 	for _, delegate := range ed.eventDelegates {
 		delegate.NotifyUpdate(node)
 	}
+}
+
+// DecodeNodeMeta decodes node meta data from bytes into something useful
+func DecodeNodeMeta(nodeMeta []byte) NodeMeta {
+	dec := gob.NewDecoder(bytes.NewReader(nodeMeta))
+	var meta NodeMeta
+	dec.Decode(&meta)
+	return meta
 }

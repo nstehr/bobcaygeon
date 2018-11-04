@@ -24,8 +24,8 @@ func (s *Server) ToggleBroadcast(ctx context.Context, in *BroadcastRequest) (*Ma
 	return &ManagementResponse{ReturnCode: 200}, nil
 }
 
-// ChangeName will change the name of that is broadcast for the airplay service
-func (s *Server) ChangeName(ctx context.Context, in *NameChangeRequest) (*ManagementResponse, error) {
+// ChangeServiceName will change the name of that is broadcast for the airplay service
+func (s *Server) ChangeServiceName(ctx context.Context, in *NameChangeRequest) (*ManagementResponse, error) {
 	err := s.airplayServer.ChangeName(in.NewName)
 	returnCode := 200
 	if err != nil {

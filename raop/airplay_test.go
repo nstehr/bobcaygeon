@@ -12,6 +12,7 @@ import (
 type FakePlayer struct{}
 
 func (FakePlayer) Play(session *rtsp.Session) {}
+func (FakePlayer) SetVolume(volume float64)   {}
 
 func TestHandleOptions(t *testing.T) {
 	req := rtsp.NewRequest()
@@ -89,5 +90,36 @@ func TestChangeNameFailOnEmpty(t *testing.T) {
 	err := a.ChangeName("")
 	if err == nil {
 		t.Error("Expected error, received none")
+	}
+}
+
+func TestMuteCalculated(t *testing.T) {
+	normalized := normalizeVolume(-144)
+	if normalized != 0 {
+		t.Error(fmt.Sprintf("Expected: %d\r\n Got: %f", 0, normalized))
+	}
+}
+
+func TestFullVolumeCalculated(t *testing.T) {
+	normalized := normalizeVolume(0)
+	if normalized != 1 {
+		t.Error(fmt.Sprintf("Expected: %d\r\n Got: %f", 1, normalized))
+	}
+}
+
+func TestIncomingMinValue(t *testing.T) {
+	normalized := normalizeVolume(-30)
+	if normalized != 0 {
+		t.Error(fmt.Sprintf("Expected: %d\r\n Got: %f", 0, normalized))
+	}
+}
+
+func TestIncomingValues(t *testing.T) {
+	// range can be between 0 and -30, test all values
+	for i := float64(0); i >= -30; i = i - 0.1 {
+		normalized := normalizeVolume(i)
+		if normalized < 0 || normalized > 1 {
+			t.Error(fmt.Sprintf("Outputted value not in expected range: %f", normalized))
+		}
 	}
 }

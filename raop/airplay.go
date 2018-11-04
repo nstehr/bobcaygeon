@@ -73,7 +73,7 @@ func (a *AirplayServer) Start(verbose bool, advertise bool) {
 	rtspServer.AddHandler(rtsp.Announce, a.handleAnnounce)
 	rtspServer.AddHandler(rtsp.Setup, a.handleSetup)
 	rtspServer.AddHandler(rtsp.Record, a.handleRecord)
-	rtspServer.AddHandler(rtsp.Set_Parameter, handlSetParameter)
+	rtspServer.AddHandler(rtsp.Set_Parameter, a.handlSetParameter)
 	rtspServer.AddHandler(rtsp.Flush, handlFlush)
 	rtspServer.Start(verbose)
 
@@ -235,7 +235,7 @@ func (a *AirplayServer) handleRecord(req *rtsp.Request, resp *rtsp.Response, loc
 
 }
 
-func handlSetParameter(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
+func (a *AirplayServer) handlSetParameter(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
 	if req.Headers["Content-Type"] == "application/x-dmap-tagged" {
 		parseDaap(req.Body)
 	} else if req.Headers["Content-Type"] == "image/jpeg" {
@@ -246,6 +246,19 @@ func handlSetParameter(req *rtsp.Request, resp *rtsp.Response, localAddress stri
 			}
 		}(req.Body)
 
+	} else if req.Headers["Content-Type"] == "text/parameters" {
+		body := string(req.Body)
+		if strings.Contains(body, "volume") {
+			volStr := strings.TrimSpace(strings.Split(body, "volume:")[1])
+			vol, err := strconv.ParseFloat(volStr, 32)
+			if err != nil {
+				log.Println("Error converting volume to float: ", err)
+				resp.Status = rtsp.BadRequest
+				return
+			}
+			vol = normalizeVolume(vol)
+			a.player.SetVolume(vol)
+		}
 	}
 	resp.Status = rtsp.Ok
 }
@@ -280,4 +293,22 @@ func getMacAddr() (addr net.HardwareAddr) {
 		}
 	}
 	return
+}
+
+// normalizeVolume maps airplay volume values to a range betweeon 0 and 1
+func normalizeVolume(volume float64) float64 {
+	// according to: https://nto.github.io/AirPlay.html#audio
+	// -144 is mute
+	if volume == -144 {
+		return 0
+	}
+	if volume == 0 {
+		return 1
+	}
+	// the remaining values will between -30 and 0,
+	// so map that to a range between 0 and 1
+	// simple range mapping formula: https://gamedev.stackexchange.com/questions/33441/how-to-convert-a-number-from-one-min-max-set-to-another-min-max-set
+	// then simplified down and adjusted to make sure the number was positive
+	adjusted := (volume + 30) / 30
+	return adjusted
 }
