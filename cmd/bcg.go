@@ -40,7 +40,7 @@ func main() {
 	// generate a name for this node and initialize the distributed member list
 	nodeName := petname.Generate(2, "-")
 	log.Printf("Starting node: %s\n", nodeName)
-	metaData := &cluster.NodeMeta{RtspPort: *port}
+	metaData := &cluster.NodeMeta{RtspPort: *port, NodeType: cluster.Music}
 	c := memberlist.DefaultLocalConfig()
 	c.Name = nodeName
 	c.BindPort = *clusterPort
@@ -136,7 +136,7 @@ func main() {
 	defer airplayServer.Stop()
 
 	// start the API server
-	go startAPIServer(*apiServerPort, airplayServer, list, metaData)
+	go startAPIServer(*apiServerPort, airplayServer)
 
 	// Clean exit.
 	sig := make(chan os.Signal, 1)
@@ -151,7 +151,7 @@ func main() {
 	log.Println("Goodbye.")
 }
 
-func startAPIServer(apiServerPort int, airplayServer *raop.AirplayServer, nodes *memberlist.Memberlist, meta *cluster.NodeMeta) {
+func startAPIServer(apiServerPort int, airplayServer *raop.AirplayServer) {
 	// create a listener
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", apiServerPort))
 	if err != nil {

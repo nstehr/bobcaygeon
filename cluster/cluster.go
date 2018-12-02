@@ -8,9 +8,20 @@ import (
 	"github.com/hashicorp/memberlist"
 )
 
+// NodeType describes what type of role this node has in the cluster
+type NodeType int
+
+const (
+	// Music this node is responsible for music
+	Music NodeType = iota
+	// Mgmt this node is responsible for management
+	Mgmt
+)
+
 // NodeMeta is metadata passed to other members about this node
 type NodeMeta struct {
 	RtspPort int
+	NodeType NodeType
 }
 
 // EventDelegate handles the delgate functions from the memberlist
