@@ -17,5 +17,5 @@ then
 fi
 
 go get github.com/mattn/goveralls
-go get -u github.com/golang/protobuf/protoc-gen-go
+go install ./vendor/github.com/golang/protobuf/protoc-gen-go/
 protoc -I api/ --go_out=plugins=grpc:api api/bobcaygeon.proto
