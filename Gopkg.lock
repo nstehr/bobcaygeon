@@ -98,6 +98,12 @@
   revision = "b38dc3dcb734f6ca3a830a1f92edf188330956c5"
 
 [[projects]]
+  name = "github.com/pelletier/go-toml"
+  packages = ["."]
+  revision = "c01d1270ff3e442a8a57cddc1c92dc1138598194"
+  version = "v1.2.0"
+
+[[projects]]
   branch = "master"
   name = "github.com/sean-/seed"
   packages = ["."]
@@ -130,6 +136,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9b756b6fb660697ac8847efc3c6bbc636d78de13ad57bc7f20a60ce08e78488e"
+  inputs-digest = "c1143de7a24b54520b1028d071c6e57021f5fc4a3b34a71156fe61652fee5d20"
   solver-name = "gps-cdcl"
   solver-version = 1

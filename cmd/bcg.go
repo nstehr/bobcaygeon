@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -17,34 +18,69 @@ import (
 	"github.com/nstehr/bobcaygeon/cluster"
 	"github.com/nstehr/bobcaygeon/player"
 	"github.com/nstehr/bobcaygeon/raop"
+	"github.com/pelletier/go-toml"
 	"google.golang.org/grpc"
 
 	petname "github.com/dustinkirkland/golang-petname"
 )
 
 var (
-	name          = flag.String("name", "Bobcaygeon", "The name for the service.")
-	port          = flag.Int("port", 5000, "Set the port the service is listening to.")
-	dataPort      = flag.Int("dataPort", 6000, "The port to listen for streaming data")
-	verbose       = flag.Bool("verbose", false, "Verbose logging; logs requests and responses")
-	clusterPort   = flag.Int("clusterPort", 7676, "Port to listen for cluster events")
-	apiServerPort = flag.Int("apiServerPort", 7777, "Port to listen for API server")
+	verbose    = flag.Bool("verbose", false, "Verbose logging; logs requests and responses")
+	configPath = flag.String("config", "bcg.toml", "Path to the config file for the node")
 )
 
 const (
 	serviceType = "_bobcaygeon._tcp"
 )
 
+type rtspConfig struct {
+	Name     string `toml:"name"`
+	Port     int    `toml:"port"`
+	DataPort int    `toml:"data-port"`
+}
+
+type nodeConfig struct {
+	APIPort     int    `toml:"api-port"`
+	ClusterPort int    `toml:"cluster-port"`
+	Name        string `toml:"name"`
+}
+
+type conf struct {
+	Node nodeConfig `toml:"node"`
+	Rtsp rtspConfig `toml:"rtsp"`
+}
+
 func main() {
 	flag.Parse()
 	// generate a name for this node and initialize the distributed member list
-	nodeName := petname.Generate(2, "-")
+	configFile, err := ioutil.ReadFile(*configPath)
+	// if we os.Open returns an error then handle it
+	if err != nil {
+		log.Fatal("Could not open config file: ", err)
+	}
+
+	config := conf{}
+	err = toml.Unmarshal(configFile, &config)
+	if err != nil {
+		log.Fatal("Could parse open config file: ", err)
+	}
+
+	if config.Node.Name == "" {
+		log.Println("Generating node name")
+		config.Node.Name = petname.Generate(2, "-")
+		updated, err := toml.Marshal(config)
+		if err != nil {
+			log.Fatal("Could not update config")
+		}
+		ioutil.WriteFile(*configPath, updated, 0644)
+	}
+	nodeName := config.Node.Name
 	log.Printf("Starting node: %s\n", nodeName)
-	metaData := &cluster.NodeMeta{RtspPort: *port, NodeType: cluster.Music}
+	metaData := &cluster.NodeMeta{RtspPort: config.Rtsp.Port, NodeType: cluster.Music}
 	c := memberlist.DefaultLocalConfig()
 	c.Name = nodeName
-	c.BindPort = *clusterPort
-	c.AdvertisePort = *clusterPort
+	c.BindPort = config.Node.ClusterPort
+	c.AdvertisePort = config.Node.ClusterPort
 	c.Delegate = cluster.Delegate{MetaData: metaData}
 
 	list, err := memberlist.Create(c)
@@ -107,7 +143,7 @@ func main() {
 		log.Println("starting cluster, I am now initial leader")
 		log.Println("broadcasting my join info")
 		// start broadcasting the service
-		server, err := zeroconf.Register(nodeName, serviceType, "local.", *clusterPort, []string{"txtv=0", "lo=1", "la=2"}, nil)
+		server, err := zeroconf.Register(nodeName, serviceType, "local.", config.Node.ClusterPort, []string{"txtv=0", "lo=1", "la=2"}, nil)
 		if err != nil {
 			log.Println("Error starting zeroconf service", err)
 		}
@@ -131,12 +167,12 @@ func main() {
 		streamPlayer = player.NewLocalPlayer()
 	}
 
-	airplayServer := raop.NewAirplayServer(*port, *dataPort, *name, streamPlayer)
+	airplayServer := raop.NewAirplayServer(config.Rtsp.Port, config.Rtsp.DataPort, config.Rtsp.Name, streamPlayer)
 	go airplayServer.Start(*verbose, advertise)
 	defer airplayServer.Stop()
 
 	// start the API server
-	go startAPIServer(*apiServerPort, airplayServer)
+	go startAPIServer(config.Node.APIPort, airplayServer)
 
 	// Clean exit.
 	sig := make(chan os.Signal, 1)
@@ -162,7 +198,7 @@ func startAPIServer(apiServerPort int, airplayServer *raop.AirplayServer) {
 	// create a gRPC server object
 	grpcServer := grpc.NewServer()
 	// attach the Ping service to the server
-	api.RegisterManagementServer(grpcServer, s)
+	api.RegisterAirPlayManagementServer(grpcServer, s)
 	log.Printf("Starting API server on port: %d", apiServerPort)
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %s", err)

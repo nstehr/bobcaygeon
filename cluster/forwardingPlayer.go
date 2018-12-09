@@ -77,16 +77,19 @@ func (p *ForwardingPlayer) NotifyJoin(node *memberlist.Node) {
 	log.Println("Node Joined " + node.Name)
 	meta := DecodeNodeMeta(node.Meta)
 	if meta.NodeType == Music {
-	    go p.initSession(node.Name, node.Addr, meta.RtspPort)
+		go p.initSession(node.Name, node.Addr, meta.RtspPort)
 	}
-	
+
 }
 
 // NotifyLeave is invoked when a node is detected to have left.
 // The Node argument must not be modified.
 func (p *ForwardingPlayer) NotifyLeave(node *memberlist.Node) {
 	log.Println("Node Left" + node.Name)
-	p.sessions.removeSession(node.Name)
+	meta := DecodeNodeMeta(node.Meta)
+	if meta.NodeType == Music {
+		p.sessions.removeSession(node.Name)
+	}
 }
 
 // NotifyUpdate is invoked when a node is detected to have

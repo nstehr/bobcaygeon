@@ -1,0 +1,5 @@
+
+[node]
+  api-port = 7778
+  cluster-port = 7677
+  name = "aware-guinea"

@@ -40,3 +40,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/dustinkirkland/golang-petname"
+
+[[constraint]]
+  name = "github.com/pelletier/go-toml"
+  version = "1.2.0"
