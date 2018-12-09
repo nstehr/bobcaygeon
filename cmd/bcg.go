@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -10,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/grandcat/zeroconf"
 	"github.com/hashicorp/memberlist"
@@ -99,44 +97,7 @@ func main() {
 	// next we use mdns to try to find a cluster to join.
 	// the curent leader (and receiving airplay server)
 	// will be broadcasting a service to join
-	resolver, err := zeroconf.NewResolver(nil)
-	if err != nil {
-		log.Fatalln("Failed to initialize resolver:", err.Error())
-	}
-
-	entries := make(chan *zeroconf.ServiceEntry)
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(5))
-	defer cancel()
-	err = resolver.Browse(ctx, serviceType, "local", entries)
-	if err != nil {
-		log.Fatalln("Failed to browse:", err.Error())
-	}
-	log.Println("searching for cluster to join")
-	var entry *zeroconf.ServiceEntry
-	foundEntry := make(chan *zeroconf.ServiceEntry)
-	// what we do is spin of a goroutine that will process the entries registered in
-	// mDNS for our service.  As soon as we detect there is one with an IP4 address
-	// we send it off and cancel to stop the searching.
-	// there is an issue, https://github.com/grandcat/zeroconf/issues/27 where we
-	// could get an entry back without an IP4 addr, it will come in later as an update
-	// so we wait until we find the addr, or timeout
-	go func(results <-chan *zeroconf.ServiceEntry, foundEntry chan *zeroconf.ServiceEntry) {
-		for e := range results {
-			if (len(e.AddrIPv4)) > 0 {
-				foundEntry <- e
-				cancel()
-			}
-		}
-	}(entries, foundEntry)
-
-	select {
-	// this should be ok, since we only expect one service of the _bobcaygeon_ type to be found
-	case entry = <-foundEntry:
-		log.Println("Found cluster to join")
-	case <-ctx.Done():
-		log.Println("cluster search timeout, no cluster to join")
-	}
+	entry := cluster.SearchForCluster()
 
 	// if the entry is nil, then we didn't find a cluster to join, so assume leadership
 	if entry == nil {
