@@ -19,15 +19,15 @@ I've followed the practice of committing vendor (https://github.com/golang/dep/b
 
 To regenerate the the grpc service:
 `protoc -I api/ --go_out=plugins=grpc:api api/bobcaygeon.proto`
+`protoc -I cmd/mgmt/api --go_out=plugins=grpc:cmd/mgmt/api cmd/mgmt/api/management.proto`
+`protoc -I=cmd/mgmt/api cmd/mgmt/api/management.proto --js_out=import_style=commonjs:cmd/frontend/webui`
+`protoc -I=cmd/mgmt/api cmd/mgmt/api/management.proto --grpc-web_out=import_style=commonjs,mode=grpcwebtext:cmd/frontend/webui`
+
 
 ## Run
 ```
--name string
-        The name for the service. (default "Bobcaygeon")
-  -port int
-        Set the port the service is listening to. (default 5000)
+-config string
+        Config file to run the service, see `bcg.toml` and `bcg-mgmt.toml`
   -verbose
         Verbose logging; logs requests and response
-  -clusterPort
-        Port to listen for cluster events (default 7676)
 ```

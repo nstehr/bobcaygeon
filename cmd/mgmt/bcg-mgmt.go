@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,7 +14,9 @@ import (
 	"github.com/grandcat/zeroconf"
 	"github.com/hashicorp/memberlist"
 	"github.com/nstehr/bobcaygeon/cluster"
+	"github.com/nstehr/bobcaygeon/cmd/mgmt/api"
 	toml "github.com/pelletier/go-toml"
+	"google.golang.org/grpc"
 )
 
 var (
@@ -57,7 +60,7 @@ func main() {
 		ioutil.WriteFile(*configPath, updated, 0644)
 	}
 
-	nodeName := petname.Generate(2, "-")
+	nodeName := config.Node.Name
 	log.Printf("Starting management API node: %s\n", nodeName)
 	metaData := &cluster.NodeMeta{NodeType: cluster.Mgmt}
 	c := memberlist.DefaultLocalConfig()
@@ -85,7 +88,7 @@ func main() {
 	if err != nil {
 		panic("Failed to join cluster: " + err.Error())
 	}
-
+	go startAPIServer(config.Node.APIPort, list)
 	// Clean exit.
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
@@ -98,4 +101,21 @@ func main() {
 
 	log.Println("Goodbye.")
 
+}
+
+func startAPIServer(apiServerPort int, list *memberlist.Memberlist) {
+	// create a listener
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", apiServerPort))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	// create a server instance
+	s := api.NewServer(list)
+	// create a gRPC server object
+	grpcServer := grpc.NewServer()
+	api.RegisterBobcaygeonManagementServer(grpcServer, s)
+	log.Printf("Starting API server on port: %d", apiServerPort)
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %s", err)
+	}
 }

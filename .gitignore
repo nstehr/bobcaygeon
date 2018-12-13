@@ -1,0 +1,5 @@
+**/*/*.pb.go
+!vendor/**/*.pb.go
+**/*/*_pb.js
+cmd/frontend/webui/dist/*
+cmd/frontend/webui/node_modules/*

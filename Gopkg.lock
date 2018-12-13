@@ -26,8 +26,26 @@
   revision = "d3c2ba80e75eeef10c5cf2fc76d2c809637376b3"
 
 [[projects]]
+  name = "github.com/envoyproxy/go-control-plane"
+  packages = ["envoy/api/v2","envoy/api/v2/auth","envoy/api/v2/cluster","envoy/api/v2/core","envoy/api/v2/endpoint","envoy/api/v2/listener","envoy/api/v2/route","envoy/type"]
+  revision = "7b403cf5db9547db2db5562a65454f9ae0dd4f4a"
+  version = "v0.6.3"
+
+[[projects]]
+  name = "github.com/gogo/googleapis"
+  packages = ["google/api","google/rpc"]
+  revision = "8558fb44d2f1fc223118afc694129d2c2d2924d1"
+  version = "v1.1.0"
+
+[[projects]]
+  name = "github.com/gogo/protobuf"
+  packages = ["gogoproto","proto","protoc-gen-gogo/descriptor","sortkeys","types"]
+  revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
+  version = "v1.1.1"
+
+[[projects]]
   name = "github.com/golang/protobuf"
-  packages = ["proto","ptypes","ptypes/any","ptypes/duration","ptypes/timestamp"]
+  packages = ["proto","protoc-gen-go/descriptor","ptypes","ptypes/any","ptypes/duration","ptypes/timestamp"]
   revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
   version = "v1.2.0"
 
@@ -92,6 +110,12 @@
   version = "v0.1.0"
 
 [[projects]]
+  name = "github.com/lyft/protoc-gen-validate"
+  packages = ["validate"]
+  revision = "1ffd5e8db575ed8a61c7e0d415af263c39cef1ab"
+  version = "v0.0.11"
+
+[[projects]]
   branch = "master"
   name = "github.com/miekg/dns"
   packages = [".","internal/socket"]
@@ -136,6 +160,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c1143de7a24b54520b1028d071c6e57021f5fc4a3b34a71156fe61652fee5d20"
+  inputs-digest = "f744ad0ca397e01ddcb0ee2d8a7adfef851d1b1379ce18bef4f787e8e696895b"
   solver-name = "gps-cdcl"
   solver-version = 1

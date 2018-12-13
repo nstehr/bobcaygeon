@@ -44,3 +44,7 @@
 [[constraint]]
   name = "github.com/pelletier/go-toml"
   version = "1.2.0"
+
+[[constraint]]
+  name = "github.com/envoyproxy/go-control-plane"
+  version = "0.6.3"
