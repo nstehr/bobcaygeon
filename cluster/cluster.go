@@ -19,11 +19,14 @@ const (
 	Music NodeType = iota
 	// Mgmt this node is responsible for management
 	Mgmt
+	// Frontend this is a node for controlling front proxy
+	Frontend
 )
 
 // NodeMeta is metadata passed to other members about this node
 type NodeMeta struct {
 	RtspPort int
+	APIPort  int
 	NodeType NodeType
 }
 

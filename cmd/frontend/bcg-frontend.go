@@ -1,43 +1,117 @@
 package main
 
 import (
+	"flag"
+	"fmt"
+	"io/ioutil"
 	"log"
-	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
-	api "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/envoyproxy/go-control-plane/pkg/cache"
-	xds "github.com/envoyproxy/go-control-plane/pkg/server"
-	"google.golang.org/grpc"
+	petname "github.com/dustinkirkland/golang-petname"
+	"github.com/grandcat/zeroconf"
+	"github.com/hashicorp/memberlist"
+	"github.com/nstehr/bobcaygeon/cluster"
+	"github.com/nstehr/bobcaygeon/cmd/frontend/control"
+	toml "github.com/pelletier/go-toml"
 )
 
-type hash struct {
+var (
+	configPath = flag.String("config", "bcg-frontend.toml", "Path to the config file for the node")
+)
+
+type nodeConfig struct {
+	APIPort     int    `toml:"api-port"`
+	ClusterPort int    `toml:"cluster-port"`
+	Name        string `toml:"name"`
 }
 
-// ID function
-func (h hash) ID(node *core.Node) string {
-	if node == nil {
-		return "unknown"
-	}
-	return node.Id
+type conf struct {
+	Node nodeConfig `toml:"node"`
 }
 
 func main() {
-	snapshotCache := cache.NewSnapshotCache(false, hash{}, nil)
-	server := xds.NewServer(snapshotCache, nil)
-	grpcServer := grpc.NewServer()
-	lis, _ := net.Listen("tcp", ":8080")
+	flag.Parse()
+	configFile, err := ioutil.ReadFile(*configPath)
+	// if we os.Open returns an error then handle it
+	if err != nil {
+		log.Fatal("Could not open config file: ", err)
+	}
 
-	discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, server)
-	api.RegisterEndpointDiscoveryServiceServer(grpcServer, server)
-	api.RegisterClusterDiscoveryServiceServer(grpcServer, server)
-	api.RegisterRouteDiscoveryServiceServer(grpcServer, server)
-	api.RegisterListenerDiscoveryServiceServer(grpcServer, server)
-	go func() {
-		if err := grpcServer.Serve(lis); err != nil {
-			// error handling
-			log.Println(err)
+	config := conf{}
+	err = toml.Unmarshal(configFile, &config)
+	if err != nil {
+		log.Fatal("Could parse open config file: ", err)
+	}
+
+	if config.Node.Name == "" {
+		log.Println("Generating node name")
+		config.Node.Name = petname.Generate(2, "-")
+		updated, err := toml.Marshal(config)
+		if err != nil {
+			log.Fatal("Could not update config")
 		}
-	}()
+		ioutil.WriteFile(*configPath, updated, 0644)
+	}
+
+	nodeName := config.Node.Name
+
+	log.Printf("Starting frontend node: %s\n", nodeName)
+	metaData := &cluster.NodeMeta{NodeType: cluster.Frontend, APIPort: config.Node.APIPort}
+	c := memberlist.DefaultLocalConfig()
+	c.Name = nodeName
+	c.BindPort = config.Node.ClusterPort
+	c.AdvertisePort = config.Node.ClusterPort
+	c.Delegate = cluster.Delegate{MetaData: metaData}
+
+	list, err := memberlist.Create(c)
+
+	var entry *zeroconf.ServiceEntry
+	found := false
+
+	// since we are a management node, we are an 'add on' so we will loop
+	// until we know that there is atleast one bcg music playing node
+	for found != true {
+		entry = cluster.SearchForCluster()
+		if entry != nil {
+			found = true
+		}
+	}
+
+	log.Println("Joining cluster")
+	_, err = list.Join([]string{fmt.Sprintf("%s:%d", entry.AddrIPv4[0].String(), entry.Port)})
+	if err != nil {
+		panic("Failed to join cluster: " + err.Error())
+	}
+
+	controlPlane := control.NewControlPlane(config.Node.APIPort)
+
+	// find any mgmt endpoints that are online and we will update our
+	// proxy with their connection info
+	var endpoints []control.MgmtEndpoint
+	for _, member := range list.Members() {
+		meta := cluster.DecodeNodeMeta(member.Meta)
+		if meta.NodeType == cluster.Mgmt {
+			ep := control.MgmtEndpoint{Host: member.Addr.String(), Port: uint32(meta.APIPort)}
+			endpoints = append(endpoints, ep)
+		}
+	}
+	if len(endpoints) > 0 {
+		controlPlane.UpdateEndpoints(endpoints)
+	}
+
+	go controlPlane.Start()
+
+	// Clean exit.
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+
+	select {
+	case <-sig:
+		// Exit by user
+		log.Println("Ctrl-c detected, shutting down")
+	}
+
+	log.Println("Goodbye.")
 }

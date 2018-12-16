@@ -74,7 +74,7 @@ func main() {
 	}
 	nodeName := config.Node.Name
 	log.Printf("Starting node: %s\n", nodeName)
-	metaData := &cluster.NodeMeta{RtspPort: config.Rtsp.Port, NodeType: cluster.Music}
+	metaData := &cluster.NodeMeta{RtspPort: config.Rtsp.Port, NodeType: cluster.Music, APIPort: config.Node.APIPort}
 	c := memberlist.DefaultLocalConfig()
 	c.Name = nodeName
 	c.BindPort = config.Node.ClusterPort

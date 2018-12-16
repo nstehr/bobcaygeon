@@ -3,44 +3,29 @@ admin:
   address:
     socket_address: { address: 0.0.0.0, port_value: 9901 }
 
+node:
+  id: bcg-frontend-envoy
+  cluster: bcg-frontend-envoy
+
+dynamic_resources:
+  lds_config:
+    api_config_source:
+      api_type: GRPC
+      grpc_services:
+        envoy_grpc:
+          cluster_name: xds_cluster
+  cds_config:
+    api_config_source:
+      api_type: GRPC
+      grpc_services:
+        envoy_grpc:
+          cluster_name: xds_cluster
+
 static_resources:
-  listeners:
-  - name: listener_0
-    address:
-      socket_address: { address: 0.0.0.0, port_value: 9211 }
-    filter_chains:
-    - filters:
-      - name: envoy.http_connection_manager
-        config:
-          codec_type: auto
-          stat_prefix: ingress_http
-          route_config:
-            name: local_route
-            virtual_hosts:
-            - name: local_service
-              domains: ["*"]
-              routes:
-              - match: { prefix: "/" }
-                route:
-                  cluster: echo_service
-                  max_grpc_timeout: 0s
-              cors:
-                allow_origin:
-                - "*"
-                allow_methods: GET, PUT, DELETE, POST, OPTIONS
-                allow_headers: keep-alive,user-agent,cache-control,content-type,content-transfer-encoding,custom-header-1,x-accept-content-transfer-encoding,x-accept-response-streaming,x-user-agent,x-grpc-web,grpc-timeout
-                max_age: "1728000"
-                expose_headers: custom-header-1,grpc-status,grpc-message
-                enabled: true
-          http_filters:
-          - name: envoy.grpc_web
-          - name: envoy.cors
-          - name: envoy.router
   clusters:
-  - name: echo_service
+  - name: xds_cluster
     connect_timeout: 0.25s
-    type: logical_dns
     http2_protocol_options: {}
-    lb_policy: round_robin
-    # hardcoded, but will be discovered
-    hosts: [{ socket_address: { address: 192.168.0.17, port_value: 7778 }}]
+    # port_value needs to match the API port specified in the TOML config for the bcg-frontend instance
+    # that is controlling this proxy
+    hosts: [{ socket_address: { address: 192.168.0.19, port_value: 6778 }}]

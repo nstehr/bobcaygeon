@@ -23,10 +23,6 @@ var (
 	configPath = flag.String("config", "bcg-mgmt.toml", "Path to the config file for the node")
 )
 
-const (
-	serviceType = "_bobcaygeon._tcp"
-)
-
 type nodeConfig struct {
 	APIPort     int    `toml:"api-port"`
 	ClusterPort int    `toml:"cluster-port"`
@@ -38,6 +34,8 @@ type conf struct {
 }
 
 func main() {
+	flag.Parse()
+	log.Println(*configPath)
 	configFile, err := ioutil.ReadFile(*configPath)
 	// if we os.Open returns an error then handle it
 	if err != nil {
@@ -62,7 +60,7 @@ func main() {
 
 	nodeName := config.Node.Name
 	log.Printf("Starting management API node: %s\n", nodeName)
-	metaData := &cluster.NodeMeta{NodeType: cluster.Mgmt}
+	metaData := &cluster.NodeMeta{NodeType: cluster.Mgmt, APIPort: config.Node.APIPort}
 	c := memberlist.DefaultLocalConfig()
 	c.Name = nodeName
 	c.BindPort = config.Node.ClusterPort

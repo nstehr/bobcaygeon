@@ -1,0 +1,5 @@
+
+[node]
+  api-port = 6778
+  cluster-port = 6677
+  name = "mature-collie"
