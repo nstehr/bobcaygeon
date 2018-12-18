@@ -31,6 +31,45 @@ type conf struct {
 	Node nodeConfig `toml:"node"`
 }
 
+type memberHandler struct {
+	cp *control.ControlPlane
+}
+
+func newMemberHandler(cp *control.ControlPlane) *memberHandler {
+	return &memberHandler{cp: cp}
+}
+
+// NotifyJoin is invoked when a node is detected to have joined.
+// The Node argument must not be modified.
+func (m *memberHandler) NotifyJoin(node *memberlist.Node) {
+	log.Println("Node Joined " + node.Name)
+	meta := cluster.DecodeNodeMeta(node.Meta)
+	if meta.NodeType == cluster.Mgmt {
+		ep := control.MgmtEndpoint{Host: node.Addr.String(), Port: uint32(meta.APIPort)}
+		m.cp.AddEndpoint(ep)
+	}
+
+}
+
+// NotifyLeave is invoked when a node is detected to have left.
+// The Node argument must not be modified.
+func (m *memberHandler) NotifyLeave(node *memberlist.Node) {
+	log.Println("Node Left" + node.Name)
+	meta := cluster.DecodeNodeMeta(node.Meta)
+	if meta.NodeType == cluster.Mgmt {
+		ep := control.MgmtEndpoint{Host: node.Addr.String(), Port: uint32(meta.APIPort)}
+		m.cp.RemoveEndpoint(ep)
+	}
+}
+
+// NotifyUpdate is invoked when a node is detected to have
+// updated, usually involving the meta data. The Node argument
+// must not be modified.
+func (*memberHandler) NotifyUpdate(node *memberlist.Node) {
+	log.Println("Node updated" + node.Name)
+
+}
+
 func main() {
 	flag.Parse()
 	configFile, err := ioutil.ReadFile(*configPath)
@@ -90,16 +129,18 @@ func main() {
 	// find any mgmt endpoints that are online and we will update our
 	// proxy with their connection info
 	var endpoints []control.MgmtEndpoint
-	for _, member := range list.Members() {
+	for _, member := range cluster.FilterMembers(cluster.Mgmt, list) {
 		meta := cluster.DecodeNodeMeta(member.Meta)
-		if meta.NodeType == cluster.Mgmt {
-			ep := control.MgmtEndpoint{Host: member.Addr.String(), Port: uint32(meta.APIPort)}
-			endpoints = append(endpoints, ep)
-		}
+		ep := control.MgmtEndpoint{Host: member.Addr.String(), Port: uint32(meta.APIPort)}
+		endpoints = append(endpoints, ep)
+
 	}
 	if len(endpoints) > 0 {
 		controlPlane.UpdateEndpoints(endpoints)
 	}
+
+	// sets up the delegate to handle when members join or leave
+	c.Events = cluster.NewEventDelegate([]memberlist.EventDelegate{newMemberHandler(controlPlane)})
 
 	go controlPlane.Start()
 

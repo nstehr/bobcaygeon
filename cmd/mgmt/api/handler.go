@@ -20,12 +20,9 @@ func NewServer(list *memberlist.Memberlist) *Server {
 // GetNodes will get all the music playing nodes
 func (s *Server) GetNodes(ctx context.Context, in *GetNodesRequest) (*GetNodesResponse, error) {
 	var nodes []*Node
-	for _, member := range s.nodes.Members() {
-		meta := cluster.DecodeNodeMeta(member.Meta)
-		if meta.NodeType == cluster.Music {
-			node := &Node{Id: member.Name, DisplayName: member.Name}
-			nodes = append(nodes, node)
-		}
+	for _, member := range cluster.FilterMembers(cluster.Music, s.nodes) {
+		node := &Node{Id: member.Name, DisplayName: member.Name}
+		nodes = append(nodes, node)
 	}
 	return &GetNodesResponse{Nodes: nodes}, nil
 }

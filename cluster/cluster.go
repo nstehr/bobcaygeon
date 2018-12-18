@@ -111,6 +111,18 @@ func DecodeNodeMeta(nodeMeta []byte) NodeMeta {
 	return meta
 }
 
+// FilterMembers filters down the memberlist to return only nodes of the given type
+func FilterMembers(memberType NodeType, list *memberlist.Memberlist) []*memberlist.Node {
+	var nodes []*memberlist.Node
+	for _, member := range list.Members() {
+		meta := DecodeNodeMeta(member.Meta)
+		if meta.NodeType == memberType {
+			nodes = append(nodes, member)
+		}
+	}
+	return nodes
+}
+
 // SearchForCluster searches for a cluster to join
 func SearchForCluster() *zeroconf.ServiceEntry {
 	serviceType := "_bobcaygeon._tcp"

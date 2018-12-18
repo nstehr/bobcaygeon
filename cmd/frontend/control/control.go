@@ -69,9 +69,7 @@ func NewControlPlane(apiPort int) *ControlPlane {
 	cp.listener = l
 	cp.endpoints = la
 
-	snapshot := cache.NewSnapshot(fmt.Sprint(cp.cacheVersion), []cache.Resource{cp.endpoints}, []cache.Resource{cp.cluster}, nil, []cache.Resource{cp.listener})
-	_ = cp.snapshotCache.SetSnapshot(envoyNodeName, snapshot)
-	cp.cacheVersion = cp.cacheVersion + 1
+	cp.newSnapshot()
 
 	return cp
 }
@@ -94,6 +92,38 @@ func (cp *ControlPlane) Start() {
 // UpdateEndpoints will tell Envoy to direct traffic to the MgmtEndpoints
 func (cp *ControlPlane) UpdateEndpoints(mgmtEndpoints []MgmtEndpoint) {
 	cp.endpoints = buildEndpoints(mgmtEndpoints)
+	cp.newSnapshot()
+}
+
+// AddEndpoint adds a single endpoint
+func (cp *ControlPlane) AddEndpoint(mgmtEndpoint MgmtEndpoint) {
+	l := cp.endpoints.Endpoints[0].LbEndpoints
+	l = append(l, buildEndpoint(mgmtEndpoint))
+	cp.endpoints.Endpoints[0].LbEndpoints = l
+	cp.newSnapshot()
+}
+
+// RemoveEndpoint remove a single endpoint
+func (cp *ControlPlane) RemoveEndpoint(mgmtEndpoint MgmtEndpoint) {
+	l := cp.endpoints.Endpoints[0].LbEndpoints
+	foundIndex := -1
+	for i, e := range l {
+		addr := e.Endpoint.Address.GetSocketAddress().Address
+		port := e.Endpoint.Address.GetSocketAddress().GetPortValue()
+		if addr == mgmtEndpoint.Host && port == mgmtEndpoint.Port {
+			foundIndex = i
+			break
+		}
+	}
+	if foundIndex >= 0 {
+		// remove the list of endpoints
+		l = append(l[:foundIndex], l[foundIndex+1:]...)
+		cp.endpoints.Endpoints[0].LbEndpoints = l
+		cp.newSnapshot()
+	}
+}
+
+func (cp *ControlPlane) newSnapshot() {
 	snapshot := cache.NewSnapshot(fmt.Sprint(cp.cacheVersion), []cache.Resource{cp.endpoints}, []cache.Resource{cp.cluster}, nil, []cache.Resource{cp.listener})
 	_ = cp.snapshotCache.SetSnapshot(envoyNodeName, snapshot)
 	cp.cacheVersion = cp.cacheVersion + 1
@@ -228,21 +258,7 @@ func buildEndpoints(mgmtEndpoints []MgmtEndpoint) *api.ClusterLoadAssignment {
 	// in our case, they are the API endpoints of the bcg-mgmt servers
 	var endpoints []endpoint.LbEndpoint
 	for _, mgmtEndpoint := range mgmtEndpoints {
-		lbEndpoint := endpoint.LbEndpoint{
-			Endpoint: &endpoint.Endpoint{
-				Address: &core.Address{
-					Address: &core.Address_SocketAddress{
-						SocketAddress: &core.SocketAddress{
-							Protocol: core.TCP,
-							Address:  mgmtEndpoint.Host,
-							PortSpecifier: &core.SocketAddress_PortValue{
-								PortValue: mgmtEndpoint.Port,
-							},
-						},
-					},
-				},
-			},
-		}
+		lbEndpoint := buildEndpoint(mgmtEndpoint)
 		endpoints = append(endpoints, lbEndpoint)
 	}
 
@@ -254,4 +270,22 @@ func buildEndpoints(mgmtEndpoints []MgmtEndpoint) *api.ClusterLoadAssignment {
 	}
 
 	return la
+}
+
+func buildEndpoint(mgmtEndpoint MgmtEndpoint) endpoint.LbEndpoint {
+	return endpoint.LbEndpoint{
+		Endpoint: &endpoint.Endpoint{
+			Address: &core.Address{
+				Address: &core.Address_SocketAddress{
+					SocketAddress: &core.SocketAddress{
+						Protocol: core.TCP,
+						Address:  mgmtEndpoint.Host,
+						PortSpecifier: &core.SocketAddress_PortValue{
+							PortValue: mgmtEndpoint.Port,
+						},
+					},
+				},
+			},
+		},
+	}
 }
