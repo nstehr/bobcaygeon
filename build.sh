@@ -27,10 +27,6 @@ then
    $GOPATH/bin/goveralls -coverprofile=acc.out -service=travis-ci
 fi  
 
-protoc -I api/ --go_out=plugins=grpc:api api/bobcaygeon.proto
-protoc -I cmd/mgmt/api --go_out=plugins=grpc:cmd/mgmt/api cmd/mgmt/api/management.proto
-protoc -I=cmd/mgmt/api cmd/mgmt/api/management.proto --js_out=import_style=commonjs:cmd/frontend/webui
-protoc -I=cmd/mgmt/api cmd/mgmt/api/management.proto --grpc-web_out=import_style=commonjs,mode=grpcwebtext:cmd/frontend/webui
 go build -o bcg-$TRAVIS_OS_NAME cmd/bcg.go
 go build -o bcg-mgmt-$TRAVIS_OS_NAME cmd/mgmt/bcg-mgmt.go
 go build -o bcg-frontend-$TRAVIS_OS_NAME cmd/frontend/bcg-frontend.go
