@@ -3,19 +3,19 @@ syntax = "proto3";
 option go_package = "api";
 
 service BobcaygeonManagement {
-  rpc GetNodes (GetNodesRequest) returns (GetNodesResponse) {}
+  rpc GetSpeakers (GetSpeakersRequest) returns (GetSpeakersResponse) {}
 }
 
-message Node {
+message Speaker {
     string id = 1;
     string displayName = 2;
 }
 
-message GetNodesResponse {
-  repeated Node nodes = 1;
+message GetSpeakersResponse {
+  repeated Speaker speakers = 1;
   int32 returnCode = 2;
 }
 
-message GetNodesRequest {
-  string nodeName = 1;
+message GetSpeakersRequest {
+  string speakerId = 1;
 }

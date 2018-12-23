@@ -17,12 +17,12 @@ func NewServer(list *memberlist.Memberlist) *Server {
 	return &Server{nodes: list}
 }
 
-// GetNodes will get all the music playing nodes
-func (s *Server) GetNodes(ctx context.Context, in *GetNodesRequest) (*GetNodesResponse, error) {
-	var nodes []*Node
+// GetSpeakers will get all the music playing nodes
+func (s *Server) GetSpeakers(ctx context.Context, in *GetSpeakersRequest) (*GetSpeakersResponse, error) {
+	var speakers []*Speaker
 	for _, member := range cluster.FilterMembers(cluster.Music, s.nodes) {
-		node := &Node{Id: member.Name, DisplayName: member.Name}
-		nodes = append(nodes, node)
+		speaker := &Speaker{Id: member.Name, DisplayName: member.Name}
+		speakers = append(speakers, speaker)
 	}
-	return &GetNodesResponse{Nodes: nodes}, nil
+	return &GetSpeakersResponse{Speakers: speakers}, nil
 }
