@@ -4,6 +4,7 @@ option go_package = "api";
 
 service BobcaygeonManagement {
   rpc GetSpeakers (GetSpeakersRequest) returns (GetSpeakersResponse) {}
+  rpc SetDisplayNameForSpeaker (SetSpeakerDisplayNameRequest) returns (UpdateResponse) {}
 }
 
 message Speaker {
@@ -18,4 +19,13 @@ message GetSpeakersResponse {
 
 message GetSpeakersRequest {
   string speakerId = 1;
+}
+
+message SetSpeakerDisplayNameRequest {
+  string speakerId = 1;
+  string displayName = 2;
+}
+
+message UpdateResponse {
+  int32 responseCode = 1;
 }

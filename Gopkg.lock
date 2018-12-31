@@ -14,6 +14,12 @@
   revision = "7aa49fde808223f8dadfdbfd3a20ff6c19e5f9ec"
 
 [[projects]]
+  name = "github.com/boltdb/bolt"
+  packages = ["."]
+  revision = "2f1ce7a837dcb8da3ec595b1dac9d0632f0f99e8"
+  version = "v1.3.1"
+
+[[projects]]
   name = "github.com/cenkalti/backoff"
   packages = ["."]
   revision = "61153c768f31ee5f130071d08fc82b85208528de"
@@ -27,7 +33,7 @@
 
 [[projects]]
   name = "github.com/envoyproxy/go-control-plane"
-  packages = ["envoy/api/v2","envoy/api/v2/auth","envoy/api/v2/cluster","envoy/api/v2/core","envoy/api/v2/endpoint","envoy/api/v2/listener","envoy/api/v2/route","envoy/type"]
+  packages = ["envoy/api/v2","envoy/api/v2/auth","envoy/api/v2/cluster","envoy/api/v2/core","envoy/api/v2/endpoint","envoy/api/v2/listener","envoy/api/v2/route","envoy/config/filter/accesslog/v2","envoy/config/filter/network/http_connection_manager/v2","envoy/service/discovery/v2","envoy/type","pkg/cache","pkg/log","pkg/server","pkg/util"]
   revision = "7b403cf5db9547db2db5562a65454f9ae0dd4f4a"
   version = "v0.6.3"
 
@@ -39,7 +45,7 @@
 
 [[projects]]
   name = "github.com/gogo/protobuf"
-  packages = ["gogoproto","proto","protoc-gen-gogo/descriptor","sortkeys","types"]
+  packages = ["gogoproto","jsonpb","proto","protoc-gen-gogo/descriptor","sortkeys","types"]
   revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
   version = "v1.1.1"
 
@@ -110,6 +116,18 @@
   version = "v0.1.0"
 
 [[projects]]
+  name = "github.com/hashicorp/raft"
+  packages = ["."]
+  revision = "6d14f0c70869faabd9e60ba7ed88a6cbbd6a661f"
+  version = "v1.0.0"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/hashicorp/raft-boltdb"
+  packages = ["."]
+  revision = "6e5ba93211eaf8d9a2ad7e41ffad8c6f160f9fe3"
+
+[[projects]]
   name = "github.com/lyft/protoc-gen-validate"
   packages = ["validate"]
   revision = "1ffd5e8db575ed8a61c7e0d415af263c39cef1ab"
@@ -140,6 +158,12 @@
   revision = "01c190206fbdffa42f334f4b2bf2220f50e64920"
 
 [[projects]]
+  branch = "master"
+  name = "golang.org/x/sys"
+  packages = ["unix"]
+  revision = "9a3f9b0469bbc6b8802087ae5c0af9f61502de01"
+
+[[projects]]
   name = "golang.org/x/text"
   packages = ["collate","collate/build","internal/colltab","internal/gen","internal/tag","internal/triegen","internal/ucd","language","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
@@ -160,6 +184,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f744ad0ca397e01ddcb0ee2d8a7adfef851d1b1379ce18bef4f787e8e696895b"
+  inputs-digest = "44aa7e7393280b525b05d29108aa5feedbf8bab3d9ec1e19108fc9f64528f29e"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -10,6 +10,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/nstehr/bobcaygeon/cmd/mgmt/store"
+
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/grandcat/zeroconf"
 	"github.com/hashicorp/memberlist"
@@ -30,8 +32,14 @@ type nodeConfig struct {
 	Name        string `toml:"name"`
 }
 
+type mgmtConfig struct {
+	RaftPort   int    `toml:"raft-port"`
+	StorageDir string `toml:"storage-dir"`
+}
+
 type conf struct {
 	Node nodeConfig `toml:"node"`
+	Mgmt mgmtConfig `toml:"mgmt"`
 }
 
 func main() {
@@ -87,7 +95,7 @@ func main() {
 	if err != nil {
 		panic("Failed to join cluster: " + err.Error())
 	}
-	go startAPIServer(config.Node.APIPort, list)
+	go startAPIServer(config.Node.APIPort, list, config.Node.Name, config.Mgmt.RaftPort, config.Mgmt.StorageDir)
 	// Clean exit.
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
@@ -102,14 +110,19 @@ func main() {
 
 }
 
-func startAPIServer(apiServerPort int, list *memberlist.Memberlist) {
+func startAPIServer(apiServerPort int, list *memberlist.Memberlist, localID string, raftPort int, raftDir string) {
 	// create a listener
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", apiServerPort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	// create a server instance
-	service := service.NewDistributedMgmtService(list)
+	store := store.NewDistributedStore(localID, raftPort, raftDir)
+	err = store.Open()
+	if err != nil {
+		log.Fatalf("failed to open database: %s", err)
+	}
+	service := service.NewDistributedMgmtService(list, store)
 	s := api.NewServer(service)
 	// create a gRPC server object
 	grpcServer := grpc.NewServer()
