@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/memberlist"
 	"github.com/nstehr/bobcaygeon/cluster"
 	"github.com/nstehr/bobcaygeon/cmd/mgmt/api"
+	"github.com/nstehr/bobcaygeon/cmd/mgmt/service"
 	toml "github.com/pelletier/go-toml"
 	"google.golang.org/grpc"
 )
@@ -108,7 +109,8 @@ func startAPIServer(apiServerPort int, list *memberlist.Memberlist) {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	// create a server instance
-	s := api.NewServer(list)
+	service := service.NewDistributedMgmtService(list)
+	s := api.NewServer(service)
 	// create a gRPC server object
 	grpcServer := grpc.NewServer()
 	api.RegisterBobcaygeonManagementServer(grpcServer, s)

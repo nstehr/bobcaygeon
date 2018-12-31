@@ -1,27 +1,26 @@
 package api
 
 import (
-	"github.com/nstehr/bobcaygeon/cluster"
+	"github.com/nstehr/bobcaygeon/cmd/mgmt/service"
 
-	"github.com/hashicorp/memberlist"
 	context "golang.org/x/net/context"
 )
 
 // Server represents the gRPC server
 type Server struct {
-	nodes *memberlist.Memberlist
+	service service.MgmtService
 }
 
 // NewServer instantiates a new RPC server
-func NewServer(list *memberlist.Memberlist) *Server {
-	return &Server{nodes: list}
+func NewServer(service service.MgmtService) *Server {
+	return &Server{service: service}
 }
 
 // GetSpeakers will get all the music playing nodes
 func (s *Server) GetSpeakers(ctx context.Context, in *GetSpeakersRequest) (*GetSpeakersResponse, error) {
 	var speakers []*Speaker
-	for _, member := range cluster.FilterMembers(cluster.Music, s.nodes) {
-		speaker := &Speaker{Id: member.Name, DisplayName: member.Name}
+	for _, member := range s.service.GetSpeakers() {
+		speaker := &Speaker{Id: member.ID, DisplayName: member.DisplayName}
 		speakers = append(speakers, speaker)
 	}
 	return &GetSpeakersResponse{Speakers: speakers}, nil
