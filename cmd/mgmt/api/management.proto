@@ -28,4 +28,5 @@ message SetSpeakerDisplayNameRequest {
 
 message UpdateResponse {
   int32 responseCode = 1;
+  string message = 2;
 }

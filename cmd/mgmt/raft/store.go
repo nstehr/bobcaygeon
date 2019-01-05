@@ -1,9 +1,10 @@
-package store
+package raft
 
 import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -23,12 +24,6 @@ const (
 type SpeakerConfig struct {
 	ID          string
 	DisplayName string
-}
-
-// Store is the interface for saving information
-type Store interface {
-	SaveSpeakerConfig(config SpeakerConfig) error
-	GetSpeakerConfig(ID string) (SpeakerConfig, error)
 }
 
 // DistributedStore is a raft backed store based on: https://github.com/otoolep/hraftd/blob/master/store/store.go
@@ -92,18 +87,70 @@ func (ds *DistributedStore) Open() error {
 	return nil
 }
 
+// GetLeader returns the address of the leader
+func (ds *DistributedStore) GetLeader() string {
+	return string(ds.raft.Leader())
+}
+
+// AmLeader whether or not the store instance is the leader of the cluster
+func (ds *DistributedStore) AmLeader() bool {
+	return ds.raft.State() == raft.Leader
+}
+
+// Join will join the specified node to participate in the raft cluster
+func (ds *DistributedStore) Join(nodeID string, nodeAddress string) error {
+	log.Printf("received join request for remote node %s at %s\n", nodeID, nodeAddress)
+
+	if ds.raft.State() != raft.Leader {
+		log.Printf("I am not leader, ignoring join request")
+		return nil
+	}
+
+	configFuture := ds.raft.GetConfiguration()
+	if err := configFuture.Error(); err != nil {
+		log.Printf("failed to get raft configuration: %v\n", err)
+		return err
+	}
+
+	for _, srv := range configFuture.Configuration().Servers {
+		// If a node already exists with either the joining node's ID or address,
+		// that node may need to be removed from the config first.
+		if srv.ID == raft.ServerID(nodeID) || srv.Address == raft.ServerAddress(nodeAddress) {
+			// However if *both* the ID and the address are the same, then nothing -- not even
+			// a join operation -- is needed.
+			if srv.Address == raft.ServerAddress(nodeAddress) && srv.ID == raft.ServerID(nodeID) {
+				log.Printf("node %s at %s already member of cluster, ignoring join request\n", nodeID, nodeAddress)
+				return nil
+			}
+
+			future := ds.raft.RemoveServer(srv.ID, 0, 0)
+			if err := future.Error(); err != nil {
+				return fmt.Errorf("error removing existing node %s at %s: %s", nodeID, nodeAddress, err)
+			}
+		}
+	}
+
+	f := ds.raft.AddVoter(raft.ServerID(nodeID), raft.ServerAddress(nodeAddress), 0, 0)
+	if f.Error() != nil {
+		return f.Error()
+	}
+	log.Printf("node %s at %s joined successfully\n", nodeID, nodeAddress)
+	return nil
+}
+
 // Apply applies a Raft log entry to the key-value store.
 func (ds *DistributedStore) Apply(l *raft.Log) interface{} {
 	var c command
 	if err := json.Unmarshal(l.Data, &c); err != nil {
-		panic(fmt.Sprintf("failed to unmarshal command: %s", err.Error()))
+		log.Printf("failed to unmarshal command: %s\n", err.Error())
 	}
 
 	switch c.Op {
 	case "set":
 		return ds.applySet(c.Key, c.Value)
 	default:
-		panic(fmt.Sprintf("unrecognized command op: %s", c.Op))
+		log.Printf("unrecognized command op: %s\n", c.Op)
+		return nil
 	}
 }
 

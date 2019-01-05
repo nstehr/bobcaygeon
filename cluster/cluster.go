@@ -14,6 +14,9 @@ import (
 // NodeType describes what type of role this node has in the cluster
 type NodeType int
 
+// MemberFilter function used to filter the list down
+type MemberFilter func(*memberlist.Node) bool
+
 const (
 	// Music this node is responsible for music
 	Music NodeType = iota
@@ -27,6 +30,7 @@ const (
 type NodeMeta struct {
 	RtspPort int
 	APIPort  int
+	RaftPort int
 	NodeType NodeType
 }
 
@@ -117,6 +121,17 @@ func FilterMembers(memberType NodeType, list *memberlist.Memberlist) []*memberli
 	for _, member := range list.Members() {
 		meta := DecodeNodeMeta(member.Meta)
 		if meta.NodeType == memberType {
+			nodes = append(nodes, member)
+		}
+	}
+	return nodes
+}
+
+// FilterMembersByFn provides more flexibility in using a filtering function
+func FilterMembersByFn(filter MemberFilter, list *memberlist.Memberlist) []*memberlist.Node {
+	var nodes []*memberlist.Node
+	for _, member := range list.Members() {
+		if filter(member) {
 			nodes = append(nodes, member)
 		}
 	}

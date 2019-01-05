@@ -10,14 +10,13 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/nstehr/bobcaygeon/cmd/mgmt/store"
+	"github.com/nstehr/bobcaygeon/cmd/mgmt/raft"
 
 	petname "github.com/dustinkirkland/golang-petname"
 	"github.com/grandcat/zeroconf"
 	"github.com/hashicorp/memberlist"
 	"github.com/nstehr/bobcaygeon/cluster"
 	"github.com/nstehr/bobcaygeon/cmd/mgmt/api"
-	"github.com/nstehr/bobcaygeon/cmd/mgmt/service"
 	toml "github.com/pelletier/go-toml"
 	"google.golang.org/grpc"
 )
@@ -40,6 +39,48 @@ type mgmtConfig struct {
 type conf struct {
 	Node nodeConfig `toml:"node"`
 	Mgmt mgmtConfig `toml:"mgmt"`
+}
+
+type memberHandler struct {
+	store *raft.DistributedStore
+}
+
+func newMemberHandler(ds *raft.DistributedStore) *memberHandler {
+	return &memberHandler{store: ds}
+}
+
+// NotifyJoin is invoked when a node is detected to have joined.
+// The Node argument must not be modified.
+func (m *memberHandler) NotifyJoin(node *memberlist.Node) {
+	log.Println("Node Joined " + node.Name)
+	meta := cluster.DecodeNodeMeta(node.Meta)
+	if meta.NodeType == cluster.Mgmt {
+		raftPort := cluster.DecodeNodeMeta(node.Meta).RaftPort
+		raftJoinAddr := fmt.Sprintf("%s:%d", node.Addr.String(), raftPort)
+		err := m.store.Join(node.Name, raftJoinAddr)
+		if err != nil {
+			log.Println("Problem joining distributed store: ", err)
+		}
+	}
+
+}
+
+// NotifyLeave is invoked when a node is detected to have left.
+// The Node argument must not be modified.
+func (m *memberHandler) NotifyLeave(node *memberlist.Node) {
+	log.Println("Node Left" + node.Name)
+	meta := cluster.DecodeNodeMeta(node.Meta)
+	if meta.NodeType == cluster.Mgmt {
+
+	}
+}
+
+// NotifyUpdate is invoked when a node is detected to have
+// updated, usually involving the meta data. The Node argument
+// must not be modified.
+func (*memberHandler) NotifyUpdate(node *memberlist.Node) {
+	log.Println("Node updated" + node.Name)
+
 }
 
 func main() {
@@ -69,7 +110,7 @@ func main() {
 
 	nodeName := config.Node.Name
 	log.Printf("Starting management API node: %s\n", nodeName)
-	metaData := &cluster.NodeMeta{NodeType: cluster.Mgmt, APIPort: config.Node.APIPort}
+	metaData := &cluster.NodeMeta{NodeType: cluster.Mgmt, APIPort: config.Node.APIPort, RaftPort: config.Mgmt.RaftPort}
 	c := memberlist.DefaultLocalConfig()
 	c.Name = nodeName
 	c.BindPort = config.Node.ClusterPort
@@ -95,7 +136,11 @@ func main() {
 	if err != nil {
 		panic("Failed to join cluster: " + err.Error())
 	}
-	go startAPIServer(config.Node.APIPort, list, config.Node.Name, config.Mgmt.RaftPort, config.Mgmt.StorageDir)
+	store := initDistributedStore(list, config.Node.Name, config.Mgmt.RaftPort, config.Mgmt.StorageDir)
+	// sets up the delegate to handle when members join or leave
+	c.Events = cluster.NewEventDelegate([]memberlist.EventDelegate{newMemberHandler(store)})
+
+	go startAPIServer(config.Node.APIPort, list, store)
 	// Clean exit.
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
@@ -110,19 +155,14 @@ func main() {
 
 }
 
-func startAPIServer(apiServerPort int, list *memberlist.Memberlist, localID string, raftPort int, raftDir string) {
+func startAPIServer(apiServerPort int, list *memberlist.Memberlist, store *raft.DistributedStore) {
 	// create a listener
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", apiServerPort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	// create a server instance
-	store := store.NewDistributedStore(localID, raftPort, raftDir)
-	err = store.Open()
-	if err != nil {
-		log.Fatalf("failed to open database: %s", err)
-	}
-	service := service.NewDistributedMgmtService(list, store)
+
+	service := raft.NewDistributedMgmtService(list, store)
 	s := api.NewServer(service)
 	// create a gRPC server object
 	grpcServer := grpc.NewServer()
@@ -131,4 +171,14 @@ func startAPIServer(apiServerPort int, list *memberlist.Memberlist, localID stri
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %s", err)
 	}
+}
+
+func initDistributedStore(list *memberlist.Memberlist, localID string, raftPort int, raftDir string) *raft.DistributedStore {
+	// create a server instance
+	store := raft.NewDistributedStore(localID, raftPort, raftDir)
+	err := store.Open()
+	if err != nil {
+		log.Fatalf("failed to open database: %s", err)
+	}
+	return store
 }

@@ -23,14 +23,14 @@ func (s *Server) GetSpeakers(ctx context.Context, in *GetSpeakersRequest) (*GetS
 		speaker := &Speaker{Id: member.ID, DisplayName: member.DisplayName}
 		speakers = append(speakers, speaker)
 	}
-	return &GetSpeakersResponse{Speakers: speakers}, nil
+	return &GetSpeakersResponse{ReturnCode: 200, Speakers: speakers}, nil
 }
 
 // SetDisplayNameForSpeaker will update the speakers display name
 func (s *Server) SetDisplayNameForSpeaker(ctx context.Context, in *SetSpeakerDisplayNameRequest) (*UpdateResponse, error) {
 	err := s.service.SetDisplayName(in.SpeakerId, in.DisplayName)
 	if err != nil {
-		return &UpdateResponse{ResponseCode: 500}, nil
+		return &UpdateResponse{ResponseCode: 500, Message: err.Error()}, nil
 	}
 	return &UpdateResponse{ResponseCode: 200}, nil
 }

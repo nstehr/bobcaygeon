@@ -6,4 +6,4 @@
 
 [mgmt]
   raft-port = 5432
-  storage-dir = "."
+  storage-dir = "./mgmt"
