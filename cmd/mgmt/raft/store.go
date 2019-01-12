@@ -78,8 +78,8 @@ func NewDistributedStore(localID string, raftPort int, raftDir string) *Distribu
 }
 
 // Open will open the database for usage
-func (ds *DistributedStore) Open() error {
-	r, err := initRaft(ds.localID, ds.raftPort, ds.raftDir, ds)
+func (ds *DistributedStore) Open(bootstrap bool) error {
+	r, err := initRaft(ds.localID, ds.raftPort, ds.raftDir, ds, bootstrap)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func (ds *DistributedStore) Restore(rc io.ReadCloser) error {
 	return nil
 }
 
-func initRaft(localID string, raftPort int, raftDir string, s *DistributedStore) (*raft.Raft, error) {
+func initRaft(localID string, raftPort int, raftDir string, s *DistributedStore, bootstrap bool) (*raft.Raft, error) {
 	// Setup Raft configuration.
 	config := raft.DefaultConfig()
 	config.LocalID = raft.ServerID(localID)
@@ -225,15 +225,18 @@ func initRaft(localID string, raftPort int, raftDir string, s *DistributedStore)
 		return nil, fmt.Errorf("new raft: %s", err)
 	}
 
-	configuration := raft.Configuration{
-		Servers: []raft.Server{
-			{
-				ID:      config.LocalID,
-				Address: transport.LocalAddr(),
+	if bootstrap {
+		log.Println("bootstrapping raft cluster")
+		configuration := raft.Configuration{
+			Servers: []raft.Server{
+				{
+					ID:      config.LocalID,
+					Address: transport.LocalAddr(),
+				},
 			},
-		},
+		}
+		ra.BootstrapCluster(configuration)
 	}
-	ra.BootstrapCluster(configuration)
 
 	return ra, nil
 }

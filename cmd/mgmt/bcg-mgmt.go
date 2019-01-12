@@ -174,9 +174,10 @@ func startAPIServer(apiServerPort int, list *memberlist.Memberlist, store *raft.
 }
 
 func initDistributedStore(list *memberlist.Memberlist, localID string, raftPort int, raftDir string) *raft.DistributedStore {
-	// create a server instance
+	numMgmtNodes := len(cluster.FilterMembers(cluster.Mgmt, list))
 	store := raft.NewDistributedStore(localID, raftPort, raftDir)
-	err := store.Open()
+	// if there is only 1 mgmt node, it means we are the only one, so we will bootstrap cluster
+	err := store.Open(numMgmtNodes == 1)
 	if err != nil {
 		log.Fatalf("failed to open database: %s", err)
 	}
