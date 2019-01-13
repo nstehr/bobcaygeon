@@ -5,17 +5,7 @@ import { createGlobalStyle } from 'styled-components';
 // Import Components
 import Container from './components/container';
 import Header from './components/header';
-
-import { GetSpeakersRequest } from './management_pb.js';
-import { BobcaygeonManagementClient } from './management_grpc_web_pb.js';
-
-// TODO: testing grpc calls, will move
-const mgmtService = new BobcaygeonManagementClient('http://localhost:9211');
-const request = new GetSpeakersRequest();
-mgmtService.getSpeakers(request, {}, function (err, response) {
-    console.log(err);
-    console.log(response.getSpeakersList());
-});
+import SpeakerList from './components/speakerList';
 
 // Global Style
 const GlobalStyle = createGlobalStyle`
@@ -34,8 +24,9 @@ const GlobalStyle = createGlobalStyle`
 // Render page
 ReactDOM.render(
     <Container>
-        <Header>Hello World 🎸</Header>
-        <p>Example site using Styled React Boilerplate</p>
+        <Header>Bobcaygeon 🎸</Header>
+        <p>Manage your speakers and speaker zones</p>
+        <SpeakerList />
         <GlobalStyle />
     </Container>,
     document.getElementById('root')
