@@ -11,7 +11,7 @@ Bobcaygeon is a multi-room speaker application.  Built on top of Apple airplay, 
 
 ## Current Status
 Full functional airplay server; Basic multi-room functionality.  Will stream to multiple clients.
-Currently tested on OSX, not on raspberry pi yet
+Currently tested on OSX and on raspberry pi.
 
 ## Build
 I've followed the practice of committing vendor (https://github.com/golang/dep/blob/master/docs/FAQ.md#should-i-commit-my-vendor-directory)
@@ -28,3 +28,11 @@ I've followed the practice of committing vendor (https://github.com/golang/dep/b
   -clusterPort
         Port to listen for cluster events (default 7676)
 ```
+
+## Raspberry Pi Notes
+To get this to work on raspberry pi, you'll need to compile the code directly on the device.  This is
+because [oto](https://github.com/hajimehoshi/oto) which is used for playing
+music uses cgo, so it is tricky to cross-compile it for ARM. 
+
+You will also need to enable ipv6 on your raspberry pi.  To do this, add `ipv6` to your `/etc/modules` and reboot
+the pi.
