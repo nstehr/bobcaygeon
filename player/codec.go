@@ -3,7 +3,7 @@ package player
 import (
 	"strings"
 
-	"github.com/alicebob/alac"
+	"github.com/maghul/alac"
 	"github.com/nstehr/bobcaygeon/rtsp"
 )
 

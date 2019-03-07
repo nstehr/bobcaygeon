@@ -27,10 +27,6 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/alicebob/alac"
-
-[[constraint]]
-  branch = "master"
   name = "github.com/hajimehoshi/oto"
 
 [[constraint]]
@@ -40,3 +36,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/dustinkirkland/golang-petname"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/maghul/alac"
