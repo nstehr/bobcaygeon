@@ -3,12 +3,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/alicebob/alac"
-  packages = ["."]
-  revision = "838a288e23c9bc47b04112f3bb68a5537ce0c092"
-
-[[projects]]
-  branch = "master"
   name = "github.com/armon/go-metrics"
   packages = ["."]
   revision = "7aa49fde808223f8dadfdbfd3a20ff6c19e5f9ec"
@@ -32,28 +26,10 @@
   revision = "d3c2ba80e75eeef10c5cf2fc76d2c809637376b3"
 
 [[projects]]
-  name = "github.com/envoyproxy/go-control-plane"
-  packages = ["envoy/api/v2","envoy/api/v2/auth","envoy/api/v2/cluster","envoy/api/v2/core","envoy/api/v2/endpoint","envoy/api/v2/listener","envoy/api/v2/route","envoy/config/filter/accesslog/v2","envoy/config/filter/network/http_connection_manager/v2","envoy/service/discovery/v2","envoy/type","pkg/cache","pkg/log","pkg/server","pkg/util"]
-  revision = "7b403cf5db9547db2db5562a65454f9ae0dd4f4a"
-  version = "v0.6.3"
-
-[[projects]]
-  name = "github.com/gogo/googleapis"
-  packages = ["google/api","google/rpc"]
-  revision = "8558fb44d2f1fc223118afc694129d2c2d2924d1"
-  version = "v1.1.0"
-
-[[projects]]
-  name = "github.com/gogo/protobuf"
-  packages = ["gogoproto","jsonpb","proto","protoc-gen-gogo/descriptor","sortkeys","types"]
-  revision = "636bf0302bc95575d69441b25a2603156ffdddf1"
-  version = "v1.1.1"
-
-[[projects]]
   name = "github.com/golang/protobuf"
-  packages = ["proto","protoc-gen-go/descriptor","ptypes","ptypes/any","ptypes/duration","ptypes/timestamp"]
-  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
-  version = "v1.2.0"
+  packages = ["proto","ptypes","ptypes/any","ptypes/duration","ptypes/timestamp"]
+  revision = "c823c79ea1570fb5ff454033735a8e68575d1d0f"
+  version = "v1.3.0"
 
 [[projects]]
   branch = "master"
@@ -135,6 +111,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/maghul/alac"
+  packages = ["."]
+  revision = "129591bceef4baa627b6c198d99e2a7da6957b0a"
+
+[[projects]]
+  branch = "master"
   name = "github.com/miekg/dns"
   packages = [".","internal/socket"]
   revision = "b38dc3dcb734f6ca3a830a1f92edf188330956c5"
@@ -161,7 +143,7 @@
   branch = "master"
   name = "golang.org/x/sys"
   packages = ["unix"]
-  revision = "9a3f9b0469bbc6b8802087ae5c0af9f61502de01"
+  revision = "b294cbcfc56d2a65a30c02c78722b5df061e99b8"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -173,17 +155,17 @@
   branch = "master"
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
-  revision = "f8c8703595236ae70fdf8789ecb656ea0bcdcf46"
+  revision = "6e86cb5d2f12401bdd82a5eccbd701b5a697e63e"
 
 [[projects]]
   name = "google.golang.org/grpc"
-  packages = [".","balancer","balancer/base","balancer/roundrobin","codes","connectivity","credentials","encoding","encoding/proto","grpclb/grpc_lb_v1/messages","grpclog","internal","keepalive","metadata","naming","peer","resolver","resolver/dns","resolver/passthrough","stats","status","tap","transport"]
-  revision = "8e4536a86ab602859c20df5ebfd0bd4228d08655"
-  version = "v1.10.0"
+  packages = [".","balancer","balancer/base","balancer/roundrobin","binarylog/grpc_binarylog_v1","codes","connectivity","credentials","credentials/internal","encoding","encoding/proto","grpclog","internal","internal/backoff","internal/binarylog","internal/channelz","internal/envconfig","internal/grpcrand","internal/grpcsync","internal/syscall","internal/transport","keepalive","metadata","naming","peer","resolver","resolver/dns","resolver/passthrough","stats","status","tap"]
+  revision = "2fdaae294f38ed9a121193c51ec99fecd3b13eb7"
+  version = "v1.19.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "44aa7e7393280b525b05d29108aa5feedbf8bab3d9ec1e19108fc9f64528f29e"
+  inputs-digest = "93bb1bc5a6db6f970586808308b9fbc2e24ef9e9a807c7fec283ca93126f0ae9"
   solver-name = "gps-cdcl"
   solver-version = 1
