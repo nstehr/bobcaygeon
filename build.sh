@@ -30,3 +30,11 @@ fi
 go build -o bcg-$TRAVIS_OS_NAME cmd/bcg.go
 go build -o bcg-mgmt-$TRAVIS_OS_NAME cmd/mgmt/bcg-mgmt.go
 go build -o bcg-frontend-$TRAVIS_OS_NAME cmd/frontend/bcg-frontend.go
+
+#TODO: refactor linux build overall
+if [[ $TRAVIS_OS_NAME == 'linux' ]]
+then
+   echo "executing docker based ARM build"
+   ./init-arm-build.sh
+fi  
+

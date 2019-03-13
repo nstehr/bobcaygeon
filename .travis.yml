@@ -1,7 +1,8 @@
 language: go
 go:
-- 1.9.2
-sudo: required
+- tip
+services:
+- docker
 before_install:
 - "./before_install.sh"
 os:
