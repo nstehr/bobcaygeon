@@ -28,3 +28,10 @@ then
 fi  
 
 go build -o bcg-$TRAVIS_OS_NAME cmd/bcg.go
+
+#TODO: refactor linux build overall
+if [[ $TRAVIS_OS_NAME == 'linux' ]]
+then
+   echo "executing docker based ARM build"
+   ./init-arm-build.sh
+fi  

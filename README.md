@@ -30,9 +30,8 @@ I've followed the practice of committing vendor (https://github.com/golang/dep/b
 ```
 
 ## Raspberry Pi Notes
-To get this to work on raspberry pi, you'll need to compile the code directly on the device.  This is
-because [oto](https://github.com/hajimehoshi/oto) which is used for playing
-music uses cgo, so it is tricky to cross-compile it for ARM. 
+You can grab the `bcg-arm` build and drop it on your raspberry pi.  You'll need to make sure you
+have ALSA setup, with the development headers (libasound2-dev)
 
-You will also need to enable ipv6 on your raspberry pi.  To do this, add `ipv6` to your `/etc/modules` and reboot
+You need to enable ipv6 on your raspberry pi.  To do this, add `ipv6` to your `/etc/modules` and reboot
 the pi.

@@ -1,6 +1,8 @@
 language: go
 go:
 - tip
+services:
+- docker
 before_install:
 - go get github.com/mattn/goveralls
 os:
