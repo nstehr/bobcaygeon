@@ -59,6 +59,7 @@ func (lp *LocalPlayer) playStream(session *rtsp.Session) {
 	}
 }
 
+// AdjustAudio takes a raw data frame of audio and a volume value between 0 and 1, 1 being full volume, 0 being mute
 func AdjustAudio(raw []byte, vol float64) []byte {
 	if vol == 1 {
 		return raw
