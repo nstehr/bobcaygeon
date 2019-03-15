@@ -28,7 +28,10 @@ then
 fi
 
 go get github.com/mattn/goveralls
-go install ./vendor/github.com/golang/protobuf/protoc-gen-go/
+export GOBIN=$PWD/bin
+export PATH=$GOBIN:$PATH
+go install github.com/golang/protobuf/protoc-gen-go
+
 protoc -I api/ --go_out=plugins=grpc:api api/bobcaygeon.proto
 protoc -I cmd/mgmt/api --go_out=plugins=grpc:cmd/mgmt/api cmd/mgmt/api/management.proto
 protoc -I=cmd/mgmt/api cmd/mgmt/api/management.proto --js_out=import_style=commonjs:cmd/frontend/webui
