@@ -9,6 +9,8 @@ github.com/cenkalti/backoff v1.1.0/go.mod h1:90ReRw6GdpyfrHakVjL/QHaoyV4aDUVVkXQ
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e h1:bRcq7ruHMqCVB/ugLbBylx+LrccNACFDEaqAD/aZ80Q=
 github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e/go.mod h1:V+Qd57rJe8gd4eiGzZyg4h54VLHmYVVw54iMnlAMrF8=
+github.com/envoyproxy/go-control-plane v0.6.3 h1:SoCLXFHbGpDtMPIR7zgB6zyOaT5wGRI0nbS64wZKNtE=
+github.com/envoyproxy/go-control-plane v0.6.3/go.mod h1:SBwIajubJHhxtWwsL9s8ss4safvEdbitLhGGK48rN6g=
 github.com/envoyproxy/go-control-plane v0.6.9 h1:deEH9W8ZAUGNbCdX+9iNzBOGrAOrnpJGoy0PcTqk/tE=
 github.com/envoyproxy/go-control-plane v0.6.9/go.mod h1:SBwIajubJHhxtWwsL9s8ss4safvEdbitLhGGK48rN6g=
 github.com/gogo/googleapis v1.1.0 h1:kFkMAZBNAn4j7K0GiZr8cRYzejq68VbheufiV3YuyFI=

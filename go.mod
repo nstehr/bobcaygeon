@@ -7,7 +7,7 @@ require (
 	github.com/boltdb/bolt v1.3.1
 	github.com/cenkalti/backoff v1.1.0
 	github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e
-	github.com/envoyproxy/go-control-plane v0.6.9
+	github.com/envoyproxy/go-control-plane v0.6.3
 	github.com/gogo/googleapis v1.1.0 // indirect
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.0
