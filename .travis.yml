@@ -1,6 +1,8 @@
 language: go
 go:
 - tip
+env:
+ - GO111MODULE=on
 services:
 - docker
 before_install:
