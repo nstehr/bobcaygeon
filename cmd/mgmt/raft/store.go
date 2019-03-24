@@ -26,27 +26,39 @@ type SpeakerConfig struct {
 	DisplayName string
 }
 
+// ZoneConfig used to store persistent zone configuration
+type ZoneConfig struct {
+	ID          string
+	DisplayName string
+	Speakers    []string
+}
+
+type entry struct {
+	SpeakerConfig SpeakerConfig
+	ZoneConfig    ZoneConfig
+}
+
 // DistributedStore is a raft backed store based on: https://github.com/otoolep/hraftd/blob/master/store/store.go
 type DistributedStore struct {
 	raftPort int
 	raftDir  string
 	localID  string
 	mu       sync.Mutex
-	m        map[string]SpeakerConfig
+	m        map[string]entry // the key will be the ID of either the SpeakerConfig or ZoneConfig
 	raft     *raft.Raft
 }
 
 type command struct {
-	Op    string        `json:"op,omitempty"`
-	Key   string        `json:"key,omitempty"`
-	Value SpeakerConfig `json:"value,omitempty"`
+	Op    string `json:"op,omitempty"`
+	Key   string `json:"key,omitempty"`
+	Value entry  `json:"value,omitempty"`
 }
 
 // GetSpeakerConfig returns the speaker configuration for the given speaker
 func (ds *DistributedStore) GetSpeakerConfig(ID string) (SpeakerConfig, error) {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
-	return ds.m[ID], nil
+	return ds.m[ID].SpeakerConfig, nil
 }
 
 // SaveSpeakerConfig saves the specified SpeakerConfig
@@ -55,18 +67,51 @@ func (ds *DistributedStore) SaveSpeakerConfig(config SpeakerConfig) error {
 		return fmt.Errorf("not leader")
 	}
 
+	e := entry{SpeakerConfig: config}
 	c := &command{
 		Op:    "set",
 		Key:   config.ID,
-		Value: config,
+		Value: e,
 	}
 	b, err := json.Marshal(c)
 	if err != nil {
 		return err
 	}
-
 	f := ds.raft.Apply(b, raftTimeout)
 	return f.Error()
+}
+
+// SaveZoneConfig persists a zone
+func (ds *DistributedStore) SaveZoneConfig(config ZoneConfig) error {
+	if ds.raft.State() != raft.Leader {
+		return fmt.Errorf("not leader")
+	}
+
+	e := entry{ZoneConfig: config}
+	c := &command{
+		Op:    "set",
+		Key:   config.ID,
+		Value: e,
+	}
+	b, err := json.Marshal(c)
+	if err != nil {
+		return err
+	}
+	f := ds.raft.Apply(b, raftTimeout)
+	return f.Error()
+}
+
+// GetZoneConfigs retrieves all zones
+func (ds *DistributedStore) GetZoneConfigs() []ZoneConfig {
+	var configs []ZoneConfig
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
+	for _, v := range ds.m {
+		if v.ZoneConfig.ID != "" {
+			configs = append(configs, v.ZoneConfig)
+		}
+	}
+	return configs
 }
 
 // NewDistributedStore initializes the store
@@ -74,7 +119,7 @@ func NewDistributedStore(localID string, raftPort int, raftDir string) *Distribu
 	return &DistributedStore{localID: localID,
 		raftPort: raftPort,
 		raftDir:  raftDir,
-		m:        make(map[string]SpeakerConfig)}
+		m:        make(map[string]entry)}
 }
 
 // Open will open the database for usage
@@ -144,7 +189,6 @@ func (ds *DistributedStore) Apply(l *raft.Log) interface{} {
 	if err := json.Unmarshal(l.Data, &c); err != nil {
 		log.Printf("failed to unmarshal command: %s\n", err.Error())
 	}
-
 	switch c.Op {
 	case "set":
 		return ds.applySet(c.Key, c.Value)
@@ -154,7 +198,7 @@ func (ds *DistributedStore) Apply(l *raft.Log) interface{} {
 	}
 }
 
-func (ds *DistributedStore) applySet(key string, value SpeakerConfig) interface{} {
+func (ds *DistributedStore) applySet(key string, value entry) interface{} {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
 	ds.m[key] = value
@@ -167,7 +211,7 @@ func (ds *DistributedStore) Snapshot() (raft.FSMSnapshot, error) {
 	defer ds.mu.Unlock()
 
 	// Clone the map.
-	o := make(map[string]SpeakerConfig)
+	o := make(map[string]entry)
 	for k, v := range ds.m {
 		o[k] = v
 	}
@@ -176,7 +220,7 @@ func (ds *DistributedStore) Snapshot() (raft.FSMSnapshot, error) {
 
 // Restore stores the key-value store to a previous state.
 func (ds *DistributedStore) Restore(rc io.ReadCloser) error {
-	o := make(map[string]SpeakerConfig)
+	o := make(map[string]entry)
 	if err := json.NewDecoder(rc).Decode(&o); err != nil {
 		return err
 	}
@@ -242,7 +286,7 @@ func initRaft(localID string, raftPort int, raftDir string, s *DistributedStore,
 }
 
 type fsmSnapshot struct {
-	store map[string]SpeakerConfig
+	store map[string]entry
 }
 
 func (f *fsmSnapshot) Persist(sink raft.SnapshotSink) error {

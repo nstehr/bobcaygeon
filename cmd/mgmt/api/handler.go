@@ -34,3 +34,26 @@ func (s *Server) SetDisplayNameForSpeaker(ctx context.Context, in *SetSpeakerDis
 	}
 	return &UpdateResponse{ResponseCode: 200}, nil
 }
+
+// CreateZone will create a new zone, which is a collection of speakers that play together
+func (s *Server) CreateZone(ctx context.Context, in *ZoneRequest) (*CreateResponse, error) {
+	id, err := s.service.CreateZone(in.DisplayName, in.SpeakerIds)
+	if err != nil {
+		return &CreateResponse{ResponseCode: 500, Message: err.Error()}, nil
+	}
+	return &CreateResponse{Id: id, ResponseCode: 200}, nil
+}
+
+// GetZones will return the zones in the system
+func (s *Server) GetZones(ctx context.Context, in *GetZonesRequest) (*GetZonesResponse, error) {
+	var zones []*Zone
+	for _, z := range s.service.GetZones() {
+		var speakers []*Speaker
+		for _, member := range z.Speakers {
+			speaker := &Speaker{Id: member.ID, DisplayName: member.DisplayName}
+			speakers = append(speakers, speaker)
+		}
+		zones = append(zones, &Zone{DisplayName: z.DisplayName, Id: z.ID, Speakers: speakers})
+	}
+	return &GetZonesResponse{ReturnCode: 200, Zones: zones}, nil
+}

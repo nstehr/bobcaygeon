@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
+	"time"
 
 	"github.com/hashicorp/memberlist"
 	"github.com/nstehr/bobcaygeon/cluster"
@@ -46,18 +48,10 @@ func (dms *DistributedMgmtService) GetSpeakers() []*service.Speaker {
 // SetDisplayName will change the user visible name of the speaker
 func (dms *DistributedMgmtService) SetDisplayName(ID string, displayName string) error {
 	if !dms.store.AmLeader() {
-		leader, _ := net.ResolveTCPAddr("tcp", dms.store.GetLeader())
-		apiAddress := dms.getAPIAddress(leader)
-		if apiAddress == "" {
-			return fmt.Errorf("Could not resolve API address for: %s", dms.store.GetLeader())
-		}
-		log.Printf("Forwarding request to leader: %s \n", apiAddress)
-		conn, err := grpc.Dial(apiAddress, grpc.WithInsecure())
+		client, err := dms.getClientToLeader(dms.store.GetLeader())
 		if err != nil {
-			log.Println("Could not open connection", err)
 			return err
 		}
-		client := api.NewBobcaygeonManagementClient(conn)
 		resp, err := client.SetDisplayNameForSpeaker(context.Background(), &api.SetSpeakerDisplayNameRequest{SpeakerId: ID, DisplayName: displayName})
 		if err != nil {
 			return err
@@ -77,6 +71,52 @@ func (dms *DistributedMgmtService) SetDisplayName(ID string, displayName string)
 	}
 	speakerConfig.DisplayName = displayName
 	return dms.store.SaveSpeakerConfig(speakerConfig)
+}
+
+// CreateZone will create a new zone with 0 to more speakers
+func (dms *DistributedMgmtService) CreateZone(displayName string, speakerIDs []string) (string, error) {
+	if !dms.store.AmLeader() {
+		client, err := dms.getClientToLeader(dms.store.GetLeader())
+		if err != nil {
+			return "", err
+		}
+		resp, err := client.CreateZone(context.Background(), &api.ZoneRequest{DisplayName: displayName, SpeakerIds: speakerIDs})
+		if err != nil {
+			return "", err
+		}
+		if resp.ResponseCode != 200 {
+			return "", fmt.Errorf(resp.Message)
+		}
+		return resp.Id, nil
+	}
+
+	// create a random id for the zone
+	s1 := rand.NewSource(time.Now().UnixNano())
+	r1 := rand.New(s1).Int63()
+	id := fmt.Sprintf("%d", r1)
+	zc := ZoneConfig{ID: id, DisplayName: displayName, Speakers: speakerIDs}
+	dms.store.SaveZoneConfig(zc)
+	return id, nil
+}
+
+// GetZones returns information about the zones under our management
+func (dms *DistributedMgmtService) GetZones() []*service.Zone {
+	var zones []*service.Zone
+	zc := dms.store.GetZoneConfigs()
+	speakers := dms.GetSpeakers()
+	for _, config := range zc {
+		var zoneSpeakers []*service.Speaker
+		for _, speakerID := range config.Speakers {
+			for _, speaker := range speakers {
+				if speaker.ID == speakerID {
+					zoneSpeakers = append(zoneSpeakers, speaker)
+				}
+			}
+		}
+		z := &service.Zone{ID: config.ID, DisplayName: config.DisplayName, Speakers: zoneSpeakers}
+		zones = append(zones, z)
+	}
+	return zones
 }
 
 func (dms *DistributedMgmtService) getAPIAddress(leader *net.TCPAddr) string {
@@ -105,4 +145,20 @@ func isLocalIP(ipAddr string) bool {
 		}
 	}
 	return false
+}
+
+func (dms *DistributedMgmtService) getClientToLeader(leader string) (api.BobcaygeonManagementClient, error) {
+	leaderAddr, _ := net.ResolveTCPAddr("tcp", leader)
+	apiAddress := dms.getAPIAddress(leaderAddr)
+	if apiAddress == "" {
+		return nil, fmt.Errorf("Could not resolve API address for: %s", leader)
+	}
+	log.Printf("Forwarding request to leader: %s \n", apiAddress)
+	conn, err := grpc.Dial(apiAddress, grpc.WithInsecure())
+	if err != nil {
+		log.Println("Could not open connection", err)
+		return nil, err
+	}
+	client := api.NewBobcaygeonManagementClient(conn)
+	return client, nil
 }
