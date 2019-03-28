@@ -75,6 +75,7 @@ func (a *AirplayServer) Start(verbose bool, advertise bool) {
 	rtspServer.AddHandler(rtsp.Record, a.handleRecord)
 	rtspServer.AddHandler(rtsp.Set_Parameter, a.handlSetParameter)
 	rtspServer.AddHandler(rtsp.Flush, handlFlush)
+	rtspServer.AddHandler(rtsp.Teardown, a.handleTeardown)
 	rtspServer.Start(verbose)
 
 }
@@ -264,6 +265,13 @@ func (a *AirplayServer) handlSetParameter(req *rtsp.Request, resp *rtsp.Response
 }
 
 func handlFlush(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
+	resp.Status = rtsp.Ok
+}
+
+func (a *AirplayServer) handleTeardown(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
+	if a.session != nil {
+		a.session.Close()
+	}
 	resp.Status = rtsp.Ok
 }
 

@@ -57,6 +57,8 @@ func (lp *LocalPlayer) playStream(session *rtsp.Session) {
 		}
 		p.Write(AdjustAudio(decoded, vol))
 	}
+	log.Println("Data stream ended closing player")
+	p.Close()
 }
 
 // AdjustAudio takes a raw data frame of audio and a volume value between 0 and 1, 1 being full volume, 0 being mute

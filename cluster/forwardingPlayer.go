@@ -158,8 +158,9 @@ func (p *ForwardingPlayer) Play(session *rtsp.Session) {
 					s.DataChan <- pkt
 				}
 			}(d)
-
 		}
+		log.Println("Data stream ended closing player")
+		ap.Close()
 	}()
 
 }

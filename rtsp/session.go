@@ -33,6 +33,7 @@ type Session struct {
 	LocalPorts  PortSet
 	dataConn    net.Conn // even though we have all ports, will only open up the data connection to start
 	DataChan    chan []byte
+	stopChan    chan (struct{})
 }
 
 // NewSession instantiates a new Session
@@ -43,7 +44,6 @@ func NewSession(description *sdp.SessionDescription, decrypter Decrypter) *Sessi
 // Close closes a session
 func (s *Session) Close() {
 	s.dataConn.Close()
-	close(s.DataChan)
 }
 
 // StartReceiving starts a session for listening for data
@@ -66,6 +66,7 @@ func (s *Session) StartReceiving() error {
 			n, _, err := conn.ReadFromUDP(buf)
 			if err != nil {
 				log.Println("Error reading data from socket: " + err.Error())
+				close(s.DataChan)
 				return
 			}
 			packet := buf[:n]
