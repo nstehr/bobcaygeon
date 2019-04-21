@@ -32,9 +32,8 @@ const (
 )
 
 type rtspConfig struct {
-	Name     string `toml:"name"`
-	Port     int    `toml:"port"`
-	DataPort int    `toml:"data-port"`
+	Name string `toml:"name"`
+	Port int    `toml:"port"`
 }
 
 type nodeConfig struct {
@@ -110,7 +109,10 @@ func main() {
 		}
 		// since we are the leader, we will start the airplay server to accept the packets
 		// and eventually forward to other members
-		forwardingPlayer := cluster.NewForwardingPlayer()
+		forwardingPlayer, err := cluster.NewForwardingPlayer()
+		if err != nil {
+			panic("Failed to initialize player" + err.Error())
+		}
 		streamPlayer = forwardingPlayer
 		delegates = append(delegates, forwardingPlayer)
 
@@ -128,7 +130,7 @@ func main() {
 		streamPlayer = player.NewLocalPlayer()
 	}
 
-	airplayServer := raop.NewAirplayServer(config.Rtsp.Port, config.Rtsp.DataPort, config.Rtsp.Name, streamPlayer)
+	airplayServer := raop.NewAirplayServer(config.Rtsp.Port, config.Rtsp.Name, streamPlayer)
 	go airplayServer.Start(*verbose, advertise)
 	defer airplayServer.Stop()
 

@@ -10,6 +10,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/grandcat/zeroconf"
 	"github.com/nstehr/bobcaygeon/player"
@@ -44,17 +45,65 @@ var airtunesServiceProperties = []string{"txtvers=1",
 // AirplayServer server for handling the RTSP protocol
 type AirplayServer struct {
 	port          int
-	dataPort      int
 	name          string
 	rtspServer    *rtsp.Server
 	zerconfServer *zeroconf.Server
-	session       *rtsp.Session
+	sessions      *sessionMap
 	player        player.Player
 }
 
+type airplaySession struct {
+	session *rtsp.Session
+	client  *DacpClient
+}
+
+func newAirplaySession(session *rtsp.Session, dacpClient *DacpClient) *airplaySession {
+	return &airplaySession{session, dacpClient}
+}
+
+type sessionMap struct {
+	sync.RWMutex
+	sessions map[string]*airplaySession
+}
+
+func newSessionMap() *sessionMap {
+	return &sessionMap{sessions: make(map[string]*airplaySession)}
+}
+
+func (sm *sessionMap) addSession(address string, session *airplaySession) {
+	sm.Lock()
+	defer sm.Unlock()
+	sm.sessions[address] = session
+}
+
+func (sm *sessionMap) removeSession(address string) {
+	sm.Lock()
+	defer sm.Unlock()
+	delete(sm.sessions, address)
+}
+
+func (sm *sessionMap) getSession(address string) *airplaySession {
+	sm.RLock()
+	defer sm.RUnlock()
+	s, ok := sm.sessions[address]
+	if !ok {
+		return nil
+	}
+	return s
+}
+
+func (sm *sessionMap) getSessions() []*airplaySession {
+	sessions := make([]*airplaySession, 0, len(sm.sessions))
+
+	for _, value := range sm.sessions {
+		sessions = append(sessions, value)
+	}
+	return sessions
+}
+
 // NewAirplayServer instantiates a new airplayer server
-func NewAirplayServer(port int, dataPort int, name string, player player.Player) *AirplayServer {
-	as := AirplayServer{port: port, dataPort: dataPort, name: name, player: player}
+func NewAirplayServer(port int, name string, player player.Player) *AirplayServer {
+	as := AirplayServer{port: port, name: name, player: player, sessions: newSessionMap()}
 	return &as
 }
 
@@ -163,11 +212,8 @@ func (a *AirplayServer) handleAnnounce(req *rtsp.Request, resp *rtsp.Response, l
 			resp.Status = rtsp.BadRequest
 			return
 		}
-
 		// right now, we only maintain one audio session, so close any existing one
-		if a.session != nil {
-			a.session.Close()
-		}
+		a.closeAllSessions()
 		var decoder rtsp.Decrypter
 
 		if key, ok := description.Attributes["rsaaeskey"]; ok {
@@ -188,13 +234,26 @@ func (a *AirplayServer) handleAnnounce(req *rtsp.Request, resp *rtsp.Response, l
 			}
 			decoder = NewAesDecrypter(aesKey, aesIv)
 		}
-		a.session = rtsp.NewSession(description, decoder)
+		// create the dacp client for player control and then attach to the stream
+		dacpID := req.Headers["DACP-ID"]
+		activeRemote := req.Headers["Active-Remote"]
+		dacpClient := DiscoverDacpClient(dacpID, activeRemote)
+		s := rtsp.NewSession(description, decoder)
+		err = s.InitReceive()
+		if err != nil {
+			log.Println("error intializing data receiving", err)
+			resp.Status = rtsp.InternalServerError
+			return
+		}
+		session := newAirplaySession(s, dacpClient)
+		a.sessions.addSession(remoteAddress, session)
 	}
 	resp.Status = rtsp.Ok
 }
 
 func (a *AirplayServer) handleSetup(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
 	transport, hasTransport := req.Headers["Transport"]
+	as := a.sessions.getSession(remoteAddress)
 	if hasTransport {
 		transportParts := strings.Split(transport, ";")
 		var controlPort int
@@ -207,30 +266,31 @@ func (a *AirplayServer) handleSetup(req *rtsp.Request, resp *rtsp.Response, loca
 				timingPort, _ = strconv.Atoi(strings.Split(part, "=")[1])
 			}
 		}
-		a.session.RemotePorts.Address = remoteAddress
-		a.session.RemotePorts.Control = controlPort
-		a.session.RemotePorts.Timing = timingPort
+		as.session.RemotePorts.Address = remoteAddress
+		as.session.RemotePorts.Control = controlPort
+		as.session.RemotePorts.Timing = timingPort
 	}
 
 	// hardcode our listening ports for now
-	a.session.LocalPorts.Control = localControlPort
-	a.session.LocalPorts.Timing = localTimingPort
-	a.session.LocalPorts.Data = a.dataPort
+	as.session.LocalPorts.Control = localControlPort
+	as.session.LocalPorts.Timing = localTimingPort
 
-	resp.Headers["Transport"] = fmt.Sprintf("RTP/AVP/UDP;unicast;mode=record;server_port=%d;control_port=%d;timing_port=%d", a.dataPort, localControlPort, localTimingPort)
+	resp.Headers["Transport"] = fmt.Sprintf("RTP/AVP/UDP;unicast;mode=record;server_port=%d;control_port=%d;timing_port=%d", as.session.LocalPorts.Data, localControlPort, localTimingPort)
 	resp.Headers["Session"] = "1"
 	resp.Headers["Audio-Jack-Status"] = "connected"
+
 	resp.Status = rtsp.Ok
 }
 
 func (a *AirplayServer) handleRecord(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
-	err := a.session.StartReceiving()
+	as := a.sessions.getSession(remoteAddress)
+	err := as.session.StartReceiving()
 	if err != nil {
 		log.Println("could not start streaming session: ", err)
 		resp.Status = rtsp.InternalServerError
 		return
 	}
-	a.player.Play(a.session)
+	a.player.Play(as.session)
 	resp.Headers["Audio-Latency"] = "2205"
 	resp.Status = rtsp.Ok
 
@@ -269,22 +329,41 @@ func handlFlush(req *rtsp.Request, resp *rtsp.Response, localAddress string, rem
 }
 
 func (a *AirplayServer) handleTeardown(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
-	if a.session != nil {
-		a.session.Close()
-	}
+	a.closeSession(remoteAddress)
 	resp.Status = rtsp.Ok
 }
 
 // Stop stops thes airplay server
 func (a *AirplayServer) Stop() {
-	if a.session != nil {
-		a.session.Close()
-	}
+	a.closeAllSessions()
 	a.rtspServer.Stop()
 	if a.zerconfServer != nil {
 		a.zerconfServer.Shutdown()
 	}
 
+}
+
+func (a *AirplayServer) closeSession(remoteAddress string) {
+	doneChan := make(chan struct{})
+	as := a.sessions.getSession(remoteAddress)
+	if as != nil {
+		// stops the client from sending data
+		if as.client != nil {
+			as.client.Stop()
+		}
+		// closes the actual listening socket
+		as.session.Close(doneChan)
+		<-doneChan
+		log.Println("Session closed")
+		close(doneChan)
+		a.sessions.removeSession(remoteAddress)
+	}
+}
+
+func (a *AirplayServer) closeAllSessions() {
+	for _, as := range a.sessions.getSessions() {
+		a.closeSession(as.session.RemotePorts.Address)
+	}
 }
 
 // getMacAddr gets the MAC hardware

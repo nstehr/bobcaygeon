@@ -36,26 +36,28 @@ func TestHandleOptions(t *testing.T) {
 }
 
 func TestHandleSetup(t *testing.T) {
-	a := NewAirplayServer(444, 333, "Test", FakePlayer{})
+	a := NewAirplayServer(444, "Test", FakePlayer{})
 	s := rtsp.NewSession(sdp.NewSessionDescription(), nil)
-	a.session = s
 	req := rtsp.NewRequest()
 	req.Headers["Transport"] = "RTP/AVP/UDP;unicast;interleaved=0-1;mode=record;control_port=8888;timing_port=8889"
 	resp := rtsp.NewResponse()
 	localAddress := "192.168.0.15"
 	remoteAddress := "10.0.0.0"
+	as := newAirplaySession(s, nil)
+	a.sessions.addSession(remoteAddress, as)
 	a.handleSetup(req, resp, localAddress, remoteAddress)
 	if resp.Status != rtsp.Ok {
 		t.Error(fmt.Sprintf("Expected: %s\r\n Got: %s", rtsp.Ok.String(), resp.Status.String()))
 	}
-	if a.session.RemotePorts.Address != remoteAddress {
-		t.Error(fmt.Sprintf("Expected: %s\r\n Got: %s", remoteAddress, a.session.RemotePorts.Address))
+	retrievedSession := a.sessions.getSession(remoteAddress).session
+	if retrievedSession.RemotePorts.Address != remoteAddress {
+		t.Error(fmt.Sprintf("Expected: %s\r\n Got: %s", remoteAddress, retrievedSession.RemotePorts.Address))
 	}
-	if a.session.RemotePorts.Control != 8888 {
-		t.Error(fmt.Sprintf("Expected: %d\r\n Got: %d", 8888, a.session.RemotePorts.Control))
+	if retrievedSession.RemotePorts.Control != 8888 {
+		t.Error(fmt.Sprintf("Expected: %d\r\n Got: %d", 8888, retrievedSession.RemotePorts.Control))
 	}
-	if a.session.RemotePorts.Timing != 8889 {
-		t.Error(fmt.Sprintf("Expected: %d\r\n Got: %d", 8889, a.session.RemotePorts.Timing))
+	if retrievedSession.RemotePorts.Timing != 8889 {
+		t.Error(fmt.Sprintf("Expected: %d\r\n Got: %d", 8889, retrievedSession.RemotePorts.Timing))
 	}
 	_, ok := resp.Headers["Transport"]
 	if !ok {
@@ -78,7 +80,7 @@ func TestHandleSetup(t *testing.T) {
 }
 
 func TestChangeName(t *testing.T) {
-	a := NewAirplayServer(444, 333, "Test", FakePlayer{})
+	a := NewAirplayServer(444, "Test", FakePlayer{})
 	err := a.ChangeName("Foo")
 	if err != nil {
 		t.Error("Unexpected error", err)
@@ -86,7 +88,7 @@ func TestChangeName(t *testing.T) {
 }
 
 func TestChangeNameFailOnEmpty(t *testing.T) {
-	a := NewAirplayServer(444, 333, "Test", FakePlayer{})
+	a := NewAirplayServer(444, "Test", FakePlayer{})
 	err := a.ChangeName("")
 	if err == nil {
 		t.Error("Expected error, received none")

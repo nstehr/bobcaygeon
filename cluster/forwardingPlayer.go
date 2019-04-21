@@ -20,6 +20,7 @@ type ForwardingPlayer struct {
 	volLock  sync.RWMutex
 	volume   float64
 	sessions *sessionMap
+	ap       *oto.Player
 }
 
 // represents what a client calling an RTSP
@@ -67,8 +68,12 @@ func (sm *sessionMap) getSessions() []*clientSession {
 }
 
 // NewForwardingPlayer instantiates a new ForwardingPlayer
-func NewForwardingPlayer() *ForwardingPlayer {
-	return &ForwardingPlayer{sessions: newSessionMap(), volume: 1}
+func NewForwardingPlayer() (*ForwardingPlayer, error) {
+	ap, err := oto.NewPlayer(44100, 2, 2, 10000)
+	if err != nil {
+		return nil, err
+	}
+	return &ForwardingPlayer{sessions: newSessionMap(), volume: 1, ap: ap}, nil
 }
 
 // NotifyJoin is invoked when a node is detected to have joined.
@@ -131,37 +136,37 @@ func (p *ForwardingPlayer) SetVolume(volume float64) {
 // Play will play the packets received on the specified session
 // and forward the packets on
 func (p *ForwardingPlayer) Play(session *rtsp.Session) {
-	// TODO: refactor so both we don't need to init oto player here too
-	ap, err := oto.NewPlayer(44100, 2, 2, 10000)
-	if err != nil {
-		log.Println("error initializing player", err)
-		return
-	}
 	decoder := player.GetCodec(session)
 
-	go func() {
+	go func(dc player.CodecHandler) {
 		for d := range session.DataChan {
 			p.volLock.RLock()
 			vol := p.volume
 			p.volLock.RUnlock()
-			// will play the audio
-			decoded, err := decoder(d)
-			if err != nil {
-				log.Println("Problem decoding packet")
-			}
-			ap.Write(player.AdjustAudio(decoded, vol))
-
-			// will forward the audio to other clients
-			go func(pkt []byte) {
-				sessions := p.sessions.getSessions()
-				for _, s := range sessions {
-					s.DataChan <- pkt
+			func() {
+				defer func() {
+					if err := recover(); err != nil {
+						fmt.Println(err)
+					}
+				}()
+				// will play the audio
+				decoded, err := dc(d)
+				if err != nil {
+					log.Println("Problem decoding packet")
 				}
-			}(d)
+				p.ap.Write(player.AdjustAudio(decoded, vol))
+
+				// will forward the audio to other clients
+				go func(pkt []byte) {
+					sessions := p.sessions.getSessions()
+					for _, s := range sessions {
+						s.DataChan <- pkt
+					}
+				}(d)
+			}()
 		}
-		log.Println("Data stream ended closing player")
-		ap.Close()
-	}()
+		log.Println("Session data sending closed")
+	}(decoder)
 
 }
 
