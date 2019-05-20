@@ -4,6 +4,12 @@ package api;
 service AirPlayManagement {
   rpc ToggleBroadcast (BroadcastRequest) returns (ManagementResponse) {}
   rpc ChangeServiceName (NameChangeRequest) returns (ManagementResponse) {}
+  rpc ForwardToNodes(AddRemoveNodesRequest) returns (ManagementResponse) {}
+  rpc RemoveForwardToNodes(AddRemoveNodesRequest) returns (ManagementResponse) {}
+}
+
+message AddRemoveNodesRequest {
+repeated string ids = 1;
 }
 
 message BroadcastRequest {

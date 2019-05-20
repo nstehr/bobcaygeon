@@ -131,7 +131,7 @@ func main() {
 	defer airplayServer.Stop()
 
 	// start the API server
-	go startAPIServer(config.Node.APIPort, airplayServer)
+	go startAPIServer(config.Node.APIPort, airplayServer, forwardingPlayer, list)
 
 	// Clean exit.
 	sig := make(chan os.Signal, 1)
@@ -146,14 +146,14 @@ func main() {
 	log.Println("Goodbye.")
 }
 
-func startAPIServer(apiServerPort int, airplayServer *raop.AirplayServer) {
+func startAPIServer(apiServerPort int, airplayServer *raop.AirplayServer, forwardingPlayer *cluster.ForwardingPlayer, nodes *memberlist.Memberlist) {
 	// create a listener
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", apiServerPort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	// create a server instance
-	s := api.NewServer(airplayServer)
+	s := api.NewServer(airplayServer, forwardingPlayer, nodes)
 	// create a gRPC server object
 	grpcServer := grpc.NewServer()
 	// attach the Ping service to the server

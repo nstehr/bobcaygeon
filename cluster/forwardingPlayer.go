@@ -56,6 +56,13 @@ func (sm *sessionMap) removeSession(name string) {
 	delete(sm.sessions, name)
 }
 
+func (sm *sessionMap) sessionExists(name string) bool {
+	sm.RLock()
+	defer sm.RUnlock()
+	_, present := sm.sessions[name]
+	return present
+}
+
 func (sm *sessionMap) getSessions() []*clientSession {
 	sm.RLock()
 	defer sm.RUnlock()
@@ -80,10 +87,7 @@ func NewForwardingPlayer() (*ForwardingPlayer, error) {
 // The Node argument must not be modified.
 func (p *ForwardingPlayer) NotifyJoin(node *memberlist.Node) {
 	log.Println("Node Joined " + node.Name)
-	meta := DecodeNodeMeta(node.Meta)
-	if meta.NodeType == Music {
-		go p.initSession(node.Name, node.Addr, meta.RtspPort)
-	}
+	p.AddSessionForNode(node)
 
 }
 
@@ -91,10 +95,7 @@ func (p *ForwardingPlayer) NotifyJoin(node *memberlist.Node) {
 // The Node argument must not be modified.
 func (p *ForwardingPlayer) NotifyLeave(node *memberlist.Node) {
 	log.Println("Node Left" + node.Name)
-	meta := DecodeNodeMeta(node.Meta)
-	if meta.NodeType == Music {
-		p.sessions.removeSession(node.Name)
-	}
+	p.RemoveSessionForNode(node)
 }
 
 // NotifyUpdate is invoked when a node is detected to have
@@ -103,6 +104,24 @@ func (p *ForwardingPlayer) NotifyLeave(node *memberlist.Node) {
 func (*ForwardingPlayer) NotifyUpdate(node *memberlist.Node) {
 	log.Println("Node updated" + node.Name)
 
+}
+
+// AddSessionForNode will create a session to the given node
+func (p *ForwardingPlayer) AddSessionForNode(node *memberlist.Node) {
+	log.Println("Adding session for node: " + node.Name)
+	meta := DecodeNodeMeta(node.Meta)
+	if meta.NodeType == Music {
+		go p.initSession(node.Name, node.Addr, meta.RtspPort)
+	}
+}
+
+// RemoveSessionForNode will remove the session for the given node
+func (p *ForwardingPlayer) RemoveSessionForNode(node *memberlist.Node) {
+	log.Println("Removing session for node: " + node.Name)
+	meta := DecodeNodeMeta(node.Meta)
+	if meta.NodeType == Music {
+		p.sessions.removeSession(node.Name)
+	}
 }
 
 // SetVolume accepts a float between 0 (mute) and 1 (full volume)
