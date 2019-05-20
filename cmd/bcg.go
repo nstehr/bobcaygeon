@@ -86,9 +86,12 @@ func main() {
 	}
 
 	var delegates []memberlist.EventDelegate
-	// we pass a player to the airplay server.  In our case
-	// it will be a forwarding player or a regular player
 	var streamPlayer player.Player
+	forwardingPlayer, err := cluster.NewForwardingPlayer()
+	if err != nil {
+		panic("Failed to initialize player" + err.Error())
+	}
+	streamPlayer = forwardingPlayer
 	// we use our airplay server to handle both scenarios
 	// the "leader" and the "follower".  If we are a follower
 	// we don't advertise as an airplay server
@@ -107,13 +110,7 @@ func main() {
 		if err != nil {
 			log.Println("Error starting zeroconf service", err)
 		}
-		// since we are the leader, we will start the airplay server to accept the packets
-		// and eventually forward to other members
-		forwardingPlayer, err := cluster.NewForwardingPlayer()
-		if err != nil {
-			panic("Failed to initialize player" + err.Error())
-		}
-		streamPlayer = forwardingPlayer
+
 		delegates = append(delegates, forwardingPlayer)
 
 		nd := cluster.NewEventDelegate(delegates)
@@ -127,7 +124,6 @@ func main() {
 		if err != nil {
 			panic("Failed to join cluster: " + err.Error())
 		}
-		streamPlayer = player.NewLocalPlayer()
 	}
 
 	airplayServer := raop.NewAirplayServer(config.Rtsp.Port, config.Rtsp.Name, streamPlayer)
