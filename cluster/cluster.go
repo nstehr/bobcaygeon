@@ -26,6 +26,10 @@ const (
 	Frontend
 )
 
+const (
+	ServiceType = "_bobcaygeon._tcp"
+)
+
 // NodeMeta is metadata passed to other members about this node
 type NodeMeta struct {
 	RtspPort int
@@ -140,7 +144,6 @@ func FilterMembersByFn(filter MemberFilter, list *memberlist.Memberlist) []*memb
 
 // SearchForCluster searches for a cluster to join
 func SearchForCluster() *zeroconf.ServiceEntry {
-	serviceType := "_bobcaygeon._tcp"
 	// next we use mdns to try to find a cluster to join.
 	// the curent leader (and receiving airplay server)
 	// will be broadcasting a service to join
@@ -153,7 +156,7 @@ func SearchForCluster() *zeroconf.ServiceEntry {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(5))
 	defer cancel()
-	err = resolver.Browse(ctx, serviceType, "local", entries)
+	err = resolver.Browse(ctx, ServiceType, "local", entries)
 	if err != nil {
 		log.Fatalln("Failed to browse:", err.Error())
 	}

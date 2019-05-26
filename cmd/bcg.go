@@ -27,10 +27,6 @@ var (
 	configPath = flag.String("config", "bcg.toml", "Path to the config file for the node")
 )
 
-const (
-	serviceType = "_bobcaygeon._tcp"
-)
-
 type rtspConfig struct {
 	Name string `toml:"name"`
 	Port int    `toml:"port"`
@@ -106,7 +102,7 @@ func main() {
 		log.Println("starting cluster, I am now initial leader")
 		log.Println("broadcasting my join info")
 		// start broadcasting the service
-		server, err := zeroconf.Register(nodeName, serviceType, "local.", config.Node.ClusterPort, []string{"txtv=0", "lo=1", "la=2"}, nil)
+		server, err := zeroconf.Register(nodeName, cluster.ServiceType, "local.", config.Node.ClusterPort, []string{"txtv=0", "lo=1", "la=2"}, nil)
 		if err != nil {
 			log.Println("Error starting zeroconf service", err)
 		}
