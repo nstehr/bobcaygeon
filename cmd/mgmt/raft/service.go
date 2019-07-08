@@ -193,7 +193,7 @@ func (dms *DistributedMgmtService) AddSpeakersToZone(zoneID string, speakerIDs [
 			break
 		}
 	}
-	if zc == nil {
+	if zone.ID == "" {
 		return fmt.Errorf("Zone: %s not found", zoneID)
 	}
 	for _, speakerID := range speakerIDs {
@@ -259,7 +259,7 @@ func (dms *DistributedMgmtService) RemoveSpeakersFromZone(zoneID string, speaker
 			break
 		}
 	}
-	if zc == nil {
+	if zone.ID == "" {
 		return fmt.Errorf("Zone: %s not found", zoneID)
 	}
 	for _, speakerID := range speakerIDs {
@@ -329,7 +329,7 @@ func (dms *DistributedMgmtService) DeleteZone(zoneID string) error {
 			break
 		}
 	}
-	if zc == nil {
+	if zone.ID == "" {
 		return fmt.Errorf("Zone: %s not found", zoneID)
 	}
 	for _, speakerID := range zone.Speakers {
@@ -397,7 +397,7 @@ func (dms *DistributedMgmtService) ChangeZoneName(zoneID string, newName string)
 			break
 		}
 	}
-	if zc == nil {
+	if zone.ID == "" {
 		return fmt.Errorf("Zone: %s not found", zoneID)
 	}
 
