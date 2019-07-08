@@ -112,8 +112,307 @@ func (dms *DistributedMgmtService) CreateZone(displayName string, speakerIDs []s
 	if len(speakerIDs) > 0 {
 		zc.Leader = speakerIDs[0]
 	}
+	for _, speakerID := range speakerIDs {
+		client, err := dms.getSpeakerClient(speakerID)
+		if err != nil {
+			return "", err
+		}
+		// first, clear any sessions the speakers may have
+		log.Printf("Clearing sessions from: %s \n", speakerID)
+		_, err = client.RemoveForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{RemoveAll: true})
+		if err != nil {
+			return "", err
+		}
+		// next, make sure the non-leaders aren't broadcasting
+		if speakerID != zc.Leader {
+			log.Printf("Setting broadcast to false for: %s \n", speakerID)
+			_, err = client.ToggleBroadcast(context.Background(), &speakerAPI.BroadcastRequest{ShouldBroadcast: false})
+			if err != nil {
+				return "", err
+			}
+		} else {
+			// make sure the leader is broadcasting, and has the cluster name
+			log.Printf("Changing display name for: %s to %s\n", speakerID, displayName)
+			_, err = client.ChangeServiceName(context.Background(), &speakerAPI.NameChangeRequest{NewName: displayName})
+			if err != nil {
+				return "", err
+			}
+			log.Printf("Setting broadcast to true for: %s \n", speakerID)
+			_, err = client.ToggleBroadcast(context.Background(), &speakerAPI.BroadcastRequest{ShouldBroadcast: true})
+			if err != nil {
+				return "", err
+			}
+		}
+	}
+	// finally, add the ids to be forwarded to
+	if len(speakerIDs) > 0 {
+		client, err := dms.getSpeakerClient(zc.Leader)
+		if err != nil {
+			return "", err
+		}
+		forwardToIDs := make([]string, 0)
+		for _, v := range speakerIDs {
+			if v != zc.Leader {
+				forwardToIDs = append(forwardToIDs, v)
+			}
+		}
+		log.Printf("Telling %s to forward to nodes \n", zc.Leader)
+		_, err = client.ForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{Ids: forwardToIDs})
+		if err != nil {
+			return "", err
+		}
+	}
 	dms.store.SaveZoneConfig(zc)
 	return id, nil
+}
+
+// AddSpeakersToZone updates a zone with the given speakers
+func (dms *DistributedMgmtService) AddSpeakersToZone(zoneID string, speakerIDs []string) error {
+	if !dms.store.AmLeader() {
+		client, err := dms.getLeaderClient(dms.store.GetLeader())
+		if err != nil {
+			return err
+		}
+		resp, err := client.AddSpeakersToZone(context.Background(), &api.ZoneRequest{ZoneId: zoneID, SpeakerIds: speakerIDs})
+		if err != nil {
+			return err
+		}
+		if resp.ResponseCode != 200 {
+			return fmt.Errorf(resp.Message)
+		}
+		return nil
+	}
+	if len(speakerIDs) == 0 {
+		return nil
+	}
+	zc := dms.store.GetZoneConfigs()
+	var zone ZoneConfig
+	for _, zoneConfig := range zc {
+		if zoneConfig.ID == zoneID {
+			zone = zoneConfig
+			break
+		}
+	}
+	if zc == nil {
+		return fmt.Errorf("Zone: %s not found", zoneID)
+	}
+	for _, speakerID := range speakerIDs {
+		if speakerID == zone.Leader {
+			continue
+		}
+		client, err := dms.getSpeakerClient(speakerID)
+		if err != nil {
+			return err
+		}
+		// first, clear any sessions the speakers may have
+		log.Printf("Clearing sessions from: %s \n", speakerID)
+		_, err = client.RemoveForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{RemoveAll: true})
+		if err != nil {
+			return err
+		}
+		// next, make sure the non-leaders aren't broadcasting
+		log.Printf("Setting broadcast to false for: %s \n", speakerID)
+		_, err = client.ToggleBroadcast(context.Background(), &speakerAPI.BroadcastRequest{ShouldBroadcast: false})
+		if err != nil {
+			return err
+		}
+	}
+
+	client, err := dms.getSpeakerClient(zone.Leader)
+	if err != nil {
+		return err
+	}
+	log.Printf("Telling %s to forward to nodes \n", zone.Leader)
+	_, err = client.ForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{Ids: speakerIDs})
+	if err != nil {
+		return err
+	}
+	zone.Speakers = append(zone.Speakers, speakerIDs...)
+	dms.store.SaveZoneConfig(zone)
+	return nil
+}
+
+// RemoveSpeakersFromZone updates a zone with the given speakers
+func (dms *DistributedMgmtService) RemoveSpeakersFromZone(zoneID string, speakerIDs []string) error {
+	if !dms.store.AmLeader() {
+		client, err := dms.getLeaderClient(dms.store.GetLeader())
+		if err != nil {
+			return err
+		}
+		resp, err := client.RemoveSpeakersFromZone(context.Background(), &api.ZoneRequest{ZoneId: zoneID, SpeakerIds: speakerIDs})
+		if err != nil {
+			return err
+		}
+		if resp.ResponseCode != 200 {
+			return fmt.Errorf(resp.Message)
+		}
+		return nil
+	}
+	if len(speakerIDs) == 0 {
+		return nil
+	}
+	zc := dms.store.GetZoneConfigs()
+	var zone ZoneConfig
+	for _, zoneConfig := range zc {
+		if zoneConfig.ID == zoneID {
+			zone = zoneConfig
+			break
+		}
+	}
+	if zc == nil {
+		return fmt.Errorf("Zone: %s not found", zoneID)
+	}
+	for _, speakerID := range speakerIDs {
+		if speakerID == zone.Leader {
+			continue
+		}
+		client, err := dms.getSpeakerClient(speakerID)
+		if err != nil {
+			return err
+		}
+
+		// re-enable removed speakers broadcasting
+		_, err = client.ToggleBroadcast(context.Background(), &speakerAPI.BroadcastRequest{ShouldBroadcast: true})
+		if err != nil {
+			return err
+		}
+	}
+
+	client, err := dms.getSpeakerClient(zone.Leader)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.RemoveForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{Ids: speakerIDs})
+	if err != nil {
+		return err
+	}
+	newSpeakers := make([]string, 0)
+	for _, speaker := range zone.Speakers {
+		found := false
+		for _, speakerToRemove := range speakerIDs {
+			if speakerToRemove == speaker {
+				found = true
+			}
+			if !found {
+				newSpeakers = append(newSpeakers, speaker)
+			}
+		}
+	}
+	zone.Speakers = newSpeakers
+	dms.store.SaveZoneConfig(zone)
+	return nil
+}
+
+// DeleteZone will delete a zone
+func (dms *DistributedMgmtService) DeleteZone(zoneID string) error {
+	if !dms.store.AmLeader() {
+		client, err := dms.getLeaderClient(dms.store.GetLeader())
+		if err != nil {
+			return err
+		}
+		resp, err := client.DeleteZone(context.Background(), &api.ZoneRequest{ZoneId: zoneID})
+		if err != nil {
+			return err
+		}
+		if resp.ResponseCode != 200 {
+			return fmt.Errorf(resp.Message)
+		}
+		return nil
+	}
+
+	zc := dms.store.GetZoneConfigs()
+	var zone ZoneConfig
+	for _, zoneConfig := range zc {
+		if zoneConfig.ID == zoneID {
+			zone = zoneConfig
+			break
+		}
+	}
+	if zc == nil {
+		return fmt.Errorf("Zone: %s not found", zoneID)
+	}
+	for _, speakerID := range zone.Speakers {
+		if speakerID == zone.Leader {
+			continue
+		}
+		client, err := dms.getSpeakerClient(speakerID)
+		if err != nil {
+			return err
+		}
+
+		// re-enable broadcasting
+		log.Printf("Setting broadcast to true for: %s \n", speakerID)
+		_, err = client.ToggleBroadcast(context.Background(), &speakerAPI.BroadcastRequest{ShouldBroadcast: true})
+		if err != nil {
+			return err
+		}
+	}
+
+	client, err := dms.getSpeakerClient(zone.Leader)
+	if err != nil {
+		return err
+	}
+	log.Printf("Clearing sessions from: %s \n", zone.Leader)
+	_, err = client.RemoveForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{RemoveAll: true})
+	if err != nil {
+		return err
+	}
+	// change the name back from the zone name
+	speakerConfig, err := dms.store.GetSpeakerConfig(zone.Leader)
+	if err != nil {
+		return err
+	}
+	log.Printf("Changing service name of: %s from: %s to: %s", zone.Leader, zone.DisplayName, speakerConfig.DisplayName)
+	_, err = client.ChangeServiceName(context.Background(), &speakerAPI.NameChangeRequest{NewName: speakerConfig.DisplayName})
+	if err != nil {
+		return err
+	}
+	dms.store.DeleteZoneConfig(zone.ID)
+	return nil
+}
+
+// ChangeZoneName changes the name of the zone
+func (dms *DistributedMgmtService) ChangeZoneName(zoneID string, newName string) error {
+	if !dms.store.AmLeader() {
+		client, err := dms.getLeaderClient(dms.store.GetLeader())
+		if err != nil {
+			return err
+		}
+		resp, err := client.ChangeZoneName(context.Background(), &api.ZoneRequest{ZoneId: zoneID, DisplayName: newName})
+		if err != nil {
+			return err
+		}
+		if resp.ResponseCode != 200 {
+			return fmt.Errorf(resp.Message)
+		}
+		return nil
+	}
+
+	zc := dms.store.GetZoneConfigs()
+	var zone ZoneConfig
+	for _, zoneConfig := range zc {
+		if zoneConfig.ID == zoneID {
+			zone = zoneConfig
+			break
+		}
+	}
+	if zc == nil {
+		return fmt.Errorf("Zone: %s not found", zoneID)
+	}
+
+	client, err := dms.getSpeakerClient(zone.Leader)
+	if err != nil {
+		return err
+	}
+	log.Printf("Changing service name of: %s from: %s to: %s", zone.Leader, zone.DisplayName, newName)
+	_, err = client.ChangeServiceName(context.Background(), &speakerAPI.NameChangeRequest{NewName: newName})
+	if err != nil {
+		return err
+	}
+	zone.DisplayName = newName
+	dms.store.SaveZoneConfig(zone)
+	return nil
 }
 
 // GetZones returns information about the zones under our management
@@ -200,7 +499,5 @@ func (dms *DistributedMgmtService) getSpeakerClient(speakerID string) (speakerAP
 		return nil, err
 	}
 	client := speakerAPI.NewAirPlayManagementClient(conn)
-	log.Println("asfasdfasdfasdfasd")
-	log.Println(client)
 	return client, nil
 }

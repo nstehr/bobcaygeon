@@ -115,6 +115,25 @@ func (ds *DistributedStore) GetZoneConfigs() []ZoneConfig {
 	return configs
 }
 
+// DeleteZoneConfig delete a give zone config
+func (ds *DistributedStore) DeleteZoneConfig(zoneID string) error {
+	if ds.raft.State() != raft.Leader {
+		return fmt.Errorf("not leader")
+	}
+
+	c := &command{
+		Op:    "delete",
+		Key:   zoneID,
+		Value: entry{},
+	}
+	b, err := json.Marshal(c)
+	if err != nil {
+		return err
+	}
+	f := ds.raft.Apply(b, raftTimeout)
+	return f.Error()
+}
+
 // NewDistributedStore initializes the store
 func NewDistributedStore(localID string, raftPort int, raftDir string) *DistributedStore {
 	return &DistributedStore{localID: localID,
@@ -193,6 +212,8 @@ func (ds *DistributedStore) Apply(l *raft.Log) interface{} {
 	switch c.Op {
 	case "set":
 		return ds.applySet(c.Key, c.Value)
+	case "delete":
+		return ds.applyDelete(c.Key)
 	default:
 		log.Printf("unrecognized command op: %s\n", c.Op)
 		return nil
@@ -203,6 +224,13 @@ func (ds *DistributedStore) applySet(key string, value entry) interface{} {
 	ds.mu.Lock()
 	defer ds.mu.Unlock()
 	ds.m[key] = value
+	return nil
+}
+
+func (ds *DistributedStore) applyDelete(key string) interface{} {
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
+	delete(ds.m, key)
 	return nil
 }
 

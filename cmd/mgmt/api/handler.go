@@ -57,3 +57,51 @@ func (s *Server) GetZones(ctx context.Context, in *GetZonesRequest) (*GetZonesRe
 	}
 	return &GetZonesResponse{ReturnCode: 200, Zones: zones}, nil
 }
+
+// AddSpeakersToZone will add speakers to an existing zone
+func (s *Server) AddSpeakersToZone(ctx context.Context, in *ZoneRequest) (*UpdateResponse, error) {
+	if in.ZoneId == "" {
+		return &UpdateResponse{ResponseCode: 400, Message: "No zone id specified"}, nil
+	}
+	err := s.service.AddSpeakersToZone(in.ZoneId, in.SpeakerIds)
+	if err != nil {
+		return &UpdateResponse{ResponseCode: 500, Message: err.Error()}, nil
+	}
+	return &UpdateResponse{ResponseCode: 200}, nil
+}
+
+// RemoveSpeakersFromZone will remove speakers from the given zone
+func (s *Server) RemoveSpeakersFromZone(ctx context.Context, in *ZoneRequest) (*UpdateResponse, error) {
+	if in.ZoneId == "" {
+		return &UpdateResponse{ResponseCode: 400, Message: "No zone id specified"}, nil
+	}
+	err := s.service.RemoveSpeakersFromZone(in.ZoneId, in.SpeakerIds)
+	if err != nil {
+		return &UpdateResponse{ResponseCode: 500, Message: err.Error()}, nil
+	}
+	return &UpdateResponse{ResponseCode: 200}, nil
+}
+
+// DeleteZone will delete the given zone
+func (s *Server) DeleteZone(ctx context.Context, in *ZoneRequest) (*UpdateResponse, error) {
+	if in.ZoneId == "" {
+		return &UpdateResponse{ResponseCode: 400, Message: "No zone id specified"}, nil
+	}
+	err := s.service.DeleteZone(in.ZoneId)
+	if err != nil {
+		return &UpdateResponse{ResponseCode: 500, Message: err.Error()}, nil
+	}
+	return &UpdateResponse{ResponseCode: 200}, nil
+}
+
+// ChangeZoneName updates the name of a zone
+func (s *Server) ChangeZoneName(ctx context.Context, in *ZoneRequest) (*UpdateResponse, error) {
+	if in.ZoneId == "" {
+		return &UpdateResponse{ResponseCode: 400, Message: "No zone id specified"}, nil
+	}
+	err := s.service.ChangeZoneName(in.ZoneId, in.DisplayName)
+	if err != nil {
+		return &UpdateResponse{ResponseCode: 500, Message: err.Error()}, nil
+	}
+	return &UpdateResponse{ResponseCode: 200}, nil
+}

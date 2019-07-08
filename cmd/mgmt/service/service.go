@@ -5,6 +5,10 @@ type MgmtService interface {
 	GetSpeakers() []*Speaker
 	SetDisplayName(ID string, displayName string) error
 	CreateZone(displayName string, speakerIDs []string) (string, error)
+	AddSpeakersToZone(zoneID string, speakerIDs []string) error
+	RemoveSpeakersFromZone(zoneID string, speakerIDs []string) error
+	DeleteZone(zoneID string) error
+	ChangeZoneName(zoneID string, newName string) error
 	GetZones() []*Zone
 }
 

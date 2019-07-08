@@ -6,6 +6,10 @@ service BobcaygeonManagement {
   rpc GetSpeakers (GetSpeakersRequest) returns (GetSpeakersResponse) {}
   rpc SetDisplayNameForSpeaker (SetSpeakerDisplayNameRequest) returns (UpdateResponse) {}
   rpc CreateZone (ZoneRequest) returns (CreateResponse) {}
+  rpc AddSpeakersToZone (ZoneRequest) returns (UpdateResponse) {}
+  rpc RemoveSpeakersFromZone (ZoneRequest) returns (UpdateResponse) {}
+  rpc DeleteZone(ZoneRequest) returns (UpdateResponse) {}
+  rpc ChangeZoneName(ZoneRequest) returns (UpdateResponse) {}
   rpc GetZones(GetZonesRequest) returns (GetZonesResponse) {}
 }
 
