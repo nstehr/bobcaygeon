@@ -22,4 +22,5 @@ message NameChangeRequest {
 
 message ManagementResponse {
   int32 returnCode = 1;
+  string message = 2;
 }

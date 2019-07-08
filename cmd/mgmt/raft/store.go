@@ -30,6 +30,7 @@ type SpeakerConfig struct {
 type ZoneConfig struct {
 	ID          string
 	DisplayName string
+	Leader      string
 	Speakers    []string
 }
 

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/memberlist"
+	speakerAPI "github.com/nstehr/bobcaygeon/api"
 	"github.com/nstehr/bobcaygeon/cluster"
 	"github.com/nstehr/bobcaygeon/cmd/mgmt/api"
 	"github.com/nstehr/bobcaygeon/cmd/mgmt/service"
@@ -48,7 +49,7 @@ func (dms *DistributedMgmtService) GetSpeakers() []*service.Speaker {
 // SetDisplayName will change the user visible name of the speaker
 func (dms *DistributedMgmtService) SetDisplayName(ID string, displayName string) error {
 	if !dms.store.AmLeader() {
-		client, err := dms.getClientToLeader(dms.store.GetLeader())
+		client, err := dms.getLeaderClient(dms.store.GetLeader())
 		if err != nil {
 			return err
 		}
@@ -69,6 +70,19 @@ func (dms *DistributedMgmtService) SetDisplayName(ID string, displayName string)
 	if speakerConfig.ID == "" {
 		speakerConfig.ID = ID
 	}
+	// first update the actual name broadcast by speaker
+	speakerClient, err := dms.getSpeakerClient(ID)
+	if err != nil {
+		return err
+	}
+	resp, err := speakerClient.ChangeServiceName(context.Background(), &speakerAPI.NameChangeRequest{NewName: displayName})
+	if err != nil {
+		return err
+	}
+	if resp.ReturnCode != 200 {
+		return fmt.Errorf("Error changing name of speaker")
+	}
+	// now we can save the display name in the store
 	speakerConfig.DisplayName = displayName
 	return dms.store.SaveSpeakerConfig(speakerConfig)
 }
@@ -76,7 +90,7 @@ func (dms *DistributedMgmtService) SetDisplayName(ID string, displayName string)
 // CreateZone will create a new zone with 0 to more speakers
 func (dms *DistributedMgmtService) CreateZone(displayName string, speakerIDs []string) (string, error) {
 	if !dms.store.AmLeader() {
-		client, err := dms.getClientToLeader(dms.store.GetLeader())
+		client, err := dms.getLeaderClient(dms.store.GetLeader())
 		if err != nil {
 			return "", err
 		}
@@ -95,6 +109,9 @@ func (dms *DistributedMgmtService) CreateZone(displayName string, speakerIDs []s
 	r1 := rand.New(s1).Int63()
 	id := fmt.Sprintf("%d", r1)
 	zc := ZoneConfig{ID: id, DisplayName: displayName, Speakers: speakerIDs}
+	if len(speakerIDs) > 0 {
+		zc.Leader = speakerIDs[0]
+	}
 	dms.store.SaveZoneConfig(zc)
 	return id, nil
 }
@@ -119,7 +136,7 @@ func (dms *DistributedMgmtService) GetZones() []*service.Zone {
 	return zones
 }
 
-func (dms *DistributedMgmtService) getAPIAddress(leader *net.TCPAddr) string {
+func (dms *DistributedMgmtService) getLeaderAPIAddress(leader *net.TCPAddr) string {
 	for _, member := range cluster.FilterMembers(cluster.Mgmt, dms.nodes) {
 		memberIP := member.Addr.String()
 		meta := cluster.DecodeNodeMeta(member.Meta)
@@ -147,9 +164,9 @@ func isLocalIP(ipAddr string) bool {
 	return false
 }
 
-func (dms *DistributedMgmtService) getClientToLeader(leader string) (api.BobcaygeonManagementClient, error) {
+func (dms *DistributedMgmtService) getLeaderClient(leader string) (api.BobcaygeonManagementClient, error) {
 	leaderAddr, _ := net.ResolveTCPAddr("tcp", leader)
-	apiAddress := dms.getAPIAddress(leaderAddr)
+	apiAddress := dms.getLeaderAPIAddress(leaderAddr)
 	if apiAddress == "" {
 		return nil, fmt.Errorf("Could not resolve API address for: %s", leader)
 	}
@@ -160,5 +177,30 @@ func (dms *DistributedMgmtService) getClientToLeader(leader string) (api.Bobcayg
 		return nil, err
 	}
 	client := api.NewBobcaygeonManagementClient(conn)
+	return client, nil
+}
+
+func (dms *DistributedMgmtService) getSpeakerClient(speakerID string) (speakerAPI.AirPlayManagementClient, error) {
+
+	filter := func(node *memberlist.Node) bool {
+		meta := cluster.DecodeNodeMeta(node.Meta)
+		return meta.NodeType == cluster.Music && speakerID == node.Name
+	}
+
+	speakers := cluster.FilterMembersByFn(filter, dms.nodes)
+	if len(speakers) != 1 {
+		return nil, fmt.Errorf("Could not find speaker with id: %s", speakerID)
+	}
+	speaker := speakers[0]
+	meta := cluster.DecodeNodeMeta(speaker.Meta)
+	speakerAPIAddress := fmt.Sprintf("%s:%d", speaker.Addr.String(), meta.APIPort)
+	conn, err := grpc.Dial(speakerAPIAddress, grpc.WithInsecure())
+	if err != nil {
+		log.Println("Could not open connection", err)
+		return nil, err
+	}
+	client := speakerAPI.NewAirPlayManagementClient(conn)
+	log.Println("asfasdfasdfasdfasd")
+	log.Println(client)
 	return client, nil
 }
