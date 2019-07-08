@@ -64,7 +64,6 @@ func (s *Server) ForwardToNodes(ctx context.Context, in *AddRemoveNodesRequest) 
 // RemoveForwardToNodes removes nodes we were forwarding music to
 func (s *Server) RemoveForwardToNodes(ctx context.Context, in *AddRemoveNodesRequest) (*ManagementResponse, error) {
 	self := s.nodes.LocalNode().Name
-
 	filter := func(node *memberlist.Node) bool {
 		if node.Name == self {
 			return false
@@ -77,9 +76,13 @@ func (s *Server) RemoveForwardToNodes(ctx context.Context, in *AddRemoveNodesReq
 		return false
 	}
 
-	nodesToRemove := cluster.FilterMembersByFn(filter, s.nodes)
-	for _, nodeToRemove := range nodesToRemove {
-		s.forwardingPlayer.RemoveSessionForNode(nodeToRemove)
+	if !in.GetRemoveAll() {
+		nodesToRemove := cluster.FilterMembersByFn(filter, s.nodes)
+		for _, nodeToRemove := range nodesToRemove {
+			s.forwardingPlayer.RemoveSessionForNode(nodeToRemove)
+		}
+	} else {
+		s.forwardingPlayer.RemoveAllSessions()
 	}
 
 	return &ManagementResponse{ReturnCode: int32(200)}, nil

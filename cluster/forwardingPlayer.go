@@ -56,6 +56,12 @@ func (sm *sessionMap) removeSession(name string) {
 	delete(sm.sessions, name)
 }
 
+func (sm *sessionMap) removeAll() {
+	sm.Lock()
+	defer sm.Unlock()
+	sm.sessions = make(map[string]*clientSession)
+}
+
 func (sm *sessionMap) sessionExists(name string) bool {
 	sm.RLock()
 	defer sm.RUnlock()
@@ -119,9 +125,18 @@ func (p *ForwardingPlayer) AddSessionForNode(node *memberlist.Node) {
 func (p *ForwardingPlayer) RemoveSessionForNode(node *memberlist.Node) {
 	log.Println("Removing session for node: " + node.Name)
 	meta := DecodeNodeMeta(node.Meta)
+	// TODO: should probably explicitly close the session.
+	// next connection to node will do that, so it should be ok
+	// for now
 	if meta.NodeType == Music {
 		p.sessions.removeSession(node.Name)
 	}
+}
+
+// RemoveAllSessions will remove all the active forwarding sessions
+func (p *ForwardingPlayer) RemoveAllSessions() {
+	log.Println("Removing all forwarding sessions")
+	p.sessions.removeAll()
 }
 
 // SetVolume accepts a float between 0 (mute) and 1 (full volume)

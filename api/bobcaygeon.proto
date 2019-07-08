@@ -10,6 +10,7 @@ service AirPlayManagement {
 
 message AddRemoveNodesRequest {
 repeated string ids = 1;
+bool removeAll = 2;
 }
 
 message BroadcastRequest {
