@@ -8,6 +8,7 @@ require (
 	github.com/cenkalti/backoff v1.1.0 // indirect
 	github.com/dustinkirkland/golang-petname v0.0.0-20170921220637-d3c2ba80e75e
 	github.com/envoyproxy/go-control-plane v0.6.3
+	github.com/gobuffalo/packr/v2 v2.5.2
 	github.com/gogo/googleapis v1.1.0 // indirect
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.0
@@ -28,8 +29,8 @@ require (
 	github.com/miekg/dns v0.0.0-20171103161535-b38dc3dcb734 // indirect
 	github.com/pelletier/go-toml v1.2.0
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
-	golang.org/x/net v0.0.0-20190213061140-3a22650c66bd
-	golang.org/x/sys v0.0.0-20190306220723-b294cbcfc56d // indirect
+	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
+	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20190306222511-6e86cb5d2f12 // indirect
 	google.golang.org/grpc v1.19.0
 )

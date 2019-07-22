@@ -5,7 +5,7 @@ import { BobcaygeonManagementPromiseClient } from './management_grpc_web_pb.js';
 
 const DEFAULT_POLL_INTERVAL = 15000;
 
-const mgmtService = new BobcaygeonManagementPromiseClient('http://localhost:9211');
+const mgmtService = new BobcaygeonManagementPromiseClient(`http://${window.location.hostname}:9211`);
 
 // helper function to poll APIs
 // from: https://codewithhugo.com/better-http-polling-with-rxjs-5/

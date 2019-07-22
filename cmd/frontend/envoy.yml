@@ -28,4 +28,4 @@ static_resources:
     http2_protocol_options: {}
     # port_value needs to match the API port specified in the TOML config for the bcg-frontend instance
     # that is controlling this proxy
-    hosts: [{ socket_address: { address: 192.168.0.19, port_value: 6778 }}]
+    hosts: [{ socket_address: { address: 10.20.0.11, port_value: 6778 }}]
