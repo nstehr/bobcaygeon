@@ -349,24 +349,26 @@ func (dms *DistributedMgmtService) DeleteZone(zoneID string) error {
 		}
 	}
 
-	client, err := dms.getSpeakerClient(zone.Leader)
-	if err != nil {
-		return err
-	}
-	log.Printf("Clearing sessions from: %s \n", zone.Leader)
-	_, err = client.RemoveForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{RemoveAll: true})
-	if err != nil {
-		return err
-	}
-	// change the name back from the zone name
-	speakerConfig, err := dms.store.GetSpeakerConfig(zone.Leader)
-	if err != nil {
-		return err
-	}
-	log.Printf("Changing service name of: %s from: %s to: %s", zone.Leader, zone.DisplayName, speakerConfig.DisplayName)
-	_, err = client.ChangeServiceName(context.Background(), &speakerAPI.NameChangeRequest{NewName: speakerConfig.DisplayName})
-	if err != nil {
-		return err
+	if zone.Leader != "" {
+		client, err := dms.getSpeakerClient(zone.Leader)
+		if err != nil {
+			return err
+		}
+		log.Printf("Clearing sessions from: %s \n", zone.Leader)
+		_, err = client.RemoveForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{RemoveAll: true})
+		if err != nil {
+			return err
+		}
+		// change the name back from the zone name
+		speakerConfig, err := dms.store.GetSpeakerConfig(zone.Leader)
+		if err != nil {
+			return err
+		}
+		log.Printf("Changing service name of: %s from: %s to: %s", zone.Leader, zone.DisplayName, speakerConfig.DisplayName)
+		_, err = client.ChangeServiceName(context.Background(), &speakerAPI.NameChangeRequest{NewName: speakerConfig.DisplayName})
+		if err != nil {
+			return err
+		}
 	}
 	dms.store.DeleteZoneConfig(zone.ID)
 	return nil

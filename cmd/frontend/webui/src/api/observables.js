@@ -1,6 +1,6 @@
 import { from, timer } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
-import { GetSpeakersRequest } from './management_pb.js';
+import { GetSpeakersRequest, GetZonesRequest } from './management_pb.js';
 import { BobcaygeonManagementPromiseClient } from './management_grpc_web_pb.js';
 
 const DEFAULT_POLL_INTERVAL = 15000;
@@ -25,5 +25,14 @@ export const speakerListObservable = () => {
     // poll for now, maybe switch to grpc streaming?
     return poll(() => {
         return mgmtService.getSpeakers(request, {});
+    })
+}
+
+// returns an observable wrapping the getSpeakers API
+export const zoneListObservable = () => {
+    const request = new GetZonesRequest();
+    // poll for now, maybe switch to grpc streaming?
+    return poll(() => {
+        return mgmtService.getZones(request, {});
     })
 }
