@@ -20,10 +20,29 @@ function ZoneList() {
         };
     }, []);
 
+    const AddZone = styled.div`
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    min-width: 300px;
+    i:last-child {
+        margin-left: auto;
+      }
+    span {
+        margin-left: 15px;
+    }
+`
+
     return (
         <div>
             <h2>Zones</h2>
-            {zones.map(item => <ZoneItem key={item.getId()} zone={item}></ZoneItem>)}
+            <div>
+                {zones.map(item => <ZoneItem key={item.getId()} zone={item}></ZoneItem>)}
+            </div>
+            <AddZone>
+                <span>Create Zone</span>
+                <i className="material-icons">add_circle</i>
+            </AddZone>
         </div>
     );
 }
@@ -48,7 +67,6 @@ function ZoneItem(props) {
         <ZoneRow>
             <i className="material-icons">speaker_group</i>
             <span>{zone.getDisplayname()}</span>
-            <i className="material-icons">edit</i>
         </ZoneRow>
     );
 }

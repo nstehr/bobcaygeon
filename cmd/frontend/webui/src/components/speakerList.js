@@ -48,7 +48,6 @@ function SpeakerItem(props) {
         <SpeakerRow>
             <i className="material-icons">speaker</i>
             <span>{speaker.getDisplayname() ? speaker.getDisplayname() : speaker.getId()}</span>
-            <i className="material-icons">edit</i>
         </SpeakerRow>
     );
 }
