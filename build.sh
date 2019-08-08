@@ -25,7 +25,18 @@ done
 if [[ $TRAVIS_OS_NAME == 'osx' ]]
 then
    $GOPATH/bin/goveralls -coverprofile=acc.out -service=travis-ci
-fi  
+fi
+
+# build the UI code
+cd cmd/frontend/webui
+npm install
+npm run build
+
+# pack the UI using packr
+cd ..
+echo "Packing UI using packr"
+packr2
+cd ../..
 
 go build -o bcg-$TRAVIS_OS_NAME cmd/bcg.go
 go build -o bcg-mgmt-$TRAVIS_OS_NAME cmd/mgmt/bcg-mgmt.go
