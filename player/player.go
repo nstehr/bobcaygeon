@@ -14,12 +14,23 @@ import (
 type Player interface {
 	Play(session *rtsp.Session)
 	SetVolume(volume float64)
+	SetTrack(album string, artist string, title string)
+	SetAlbumArt(artwork []byte)
+	GetTrack() Track
 }
 
 // LocalPlayer is a player that will just play the audio locally
 type LocalPlayer struct {
 	volLock sync.RWMutex
 	volume  float64
+}
+
+// Track represents a track playing by the player
+type Track struct {
+	Artist  string
+	Album   string
+	Title   string
+	Artwork []byte
 }
 
 // NewLocalPlayer instantiates a new LocalPlayer
@@ -38,6 +49,21 @@ func (lp *LocalPlayer) SetVolume(volume float64) {
 	defer lp.volLock.Unlock()
 	lp.volume = volume
 
+}
+
+// SetTrack sets the track for the player
+func (lp *LocalPlayer) SetTrack(album string, artist string, title string) {
+	// no op for now
+}
+
+// SetAlbumArt sets the album art for the player
+func (lp *LocalPlayer) SetAlbumArt(artwork []byte) {
+	// no op for now
+}
+
+// GetTrack returns the track
+func (lp *LocalPlayer) GetTrack() Track {
+	return Track{}
 }
 
 func (lp *LocalPlayer) playStream(session *rtsp.Session) {

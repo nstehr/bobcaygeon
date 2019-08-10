@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"strconv"
@@ -298,15 +297,22 @@ func (a *AirplayServer) handleRecord(req *rtsp.Request, resp *rtsp.Response, loc
 
 func (a *AirplayServer) handlSetParameter(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
 	if req.Headers["Content-Type"] == "application/x-dmap-tagged" {
-		parseDaap(req.Body)
+		daapData := parseDaap(req.Body)
+		album := ""
+		artist := ""
+		title := ""
+		if val, ok := daapData["daap.songalbum"]; ok {
+			album = val.(string)
+		}
+		if val, ok := daapData["daap.songartist"]; ok {
+			artist = val.(string)
+		}
+		if val, ok := daapData["dmap.itemname"]; ok {
+			title = val.(string)
+		}
+		a.player.SetTrack(album, artist, title)
 	} else if req.Headers["Content-Type"] == "image/jpeg" {
-		go func(data []byte) {
-			err := ioutil.WriteFile("img.jpg", data, 0644)
-			if err != nil {
-				log.Println("Couldn't save album art", err)
-			}
-		}(req.Body)
-
+		a.player.SetAlbumArt(req.Body)
 	} else if req.Headers["Content-Type"] == "text/parameters" {
 		body := string(req.Body)
 		if strings.Contains(body, "volume") {

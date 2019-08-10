@@ -437,6 +437,44 @@ func (dms *DistributedMgmtService) GetZones() []*service.Zone {
 	return zones
 }
 
+// GetTrackForZone returns the track that is playing on all speakers in the zone
+func (dms *DistributedMgmtService) GetTrackForZone(zoneID string) (*service.Track, error) {
+	zc := dms.store.GetZoneConfigs()
+	var zone ZoneConfig
+	for _, zoneConfig := range zc {
+		if zoneConfig.ID == zoneID {
+			zone = zoneConfig
+			break
+		}
+	}
+	if zone.ID == "" {
+		return nil, fmt.Errorf("Zone: %s not found", zoneID)
+	}
+
+	client, err := dms.getSpeakerClient(zone.Leader)
+	if err != nil {
+		return nil, err
+	}
+	track, err := client.GetCurrentTrack(context.Background(), &speakerAPI.GetTrackRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return &service.Track{Artist: track.Artist, Album: track.Album, Title: track.Title, Artwork: track.Artwork}, nil
+}
+
+// GetTrackForSpeaker returns the track that is playing for the given speaker
+func (dms *DistributedMgmtService) GetTrackForSpeaker(speakerID string) (*service.Track, error) {
+	client, err := dms.getSpeakerClient(speakerID)
+	if err != nil {
+		return nil, err
+	}
+	track, err := client.GetCurrentTrack(context.Background(), &speakerAPI.GetTrackRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return &service.Track{Artist: track.Artist, Album: track.Album, Title: track.Title, Artwork: track.Artwork}, nil
+}
+
 func (dms *DistributedMgmtService) getLeaderAPIAddress(leader *net.TCPAddr) string {
 	for _, member := range cluster.FilterMembers(cluster.Mgmt, dms.nodes) {
 		memberIP := member.Addr.String()

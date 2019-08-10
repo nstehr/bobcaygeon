@@ -87,3 +87,9 @@ func (s *Server) RemoveForwardToNodes(ctx context.Context, in *AddRemoveNodesReq
 
 	return &ManagementResponse{ReturnCode: int32(200)}, nil
 }
+
+// GetCurrentTrack returns the current playing track on this node
+func (s *Server) GetCurrentTrack(ctx context.Context, in *GetTrackRequest) (*Track, error) {
+	track := s.forwardingPlayer.GetTrack()
+	return &Track{Artist: track.Artist, Album: track.Album, Title: track.Title, Artwork: track.Artwork}, nil
+}

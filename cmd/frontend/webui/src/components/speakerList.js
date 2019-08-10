@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { speakerListObservable } from '../api/observables';
+import { speakerListObservable, getCurrentTrackForSpeakerObservable } from '../api/observables';
 import styled from 'styled-components'
 
 // list of speaker elements
@@ -34,6 +34,7 @@ function SpeakerItem(props) {
     const SpeakerRow = styled.div`
         display: flex;
         flex-direction: row;
+        justify-content: space-between;
         align-items: center;
         min-width: 300px;
         i:last-child {
@@ -48,7 +49,41 @@ function SpeakerItem(props) {
         <SpeakerRow>
             <i className="material-icons">speaker</i>
             <span>{speaker.getDisplayname() ? speaker.getDisplayname() : speaker.getId()}</span>
+            <SpeakerTrack speaker={speaker}></SpeakerTrack>
         </SpeakerRow>
+    );
+}
+
+// TODO: hack to do some testing....
+function SpeakerTrack(props) {
+    const [track, setTrack] = useState([]);
+    useEffect(() => {
+        // retrieve an observable to the speaker list
+        const track = getCurrentTrackForSpeakerObservable(props.speaker.getId());
+        // create a subscription to the observable
+        const sub = track.subscribe(resp => {
+            var blob = new Blob([resp.getArtwork()], { type: "image/jpeg" });
+            var urlCreator = window.URL || window.webkitURL;
+            var imageUrl = urlCreator.createObjectURL(blob);
+            resp.artworkUrl = imageUrl;
+            setTrack(resp);
+        })
+        // returns the function that will be called when our component is destroyed
+        // in our case it is to unsubscribe
+        return () => {
+            sub.unsubscribe();
+        };
+    }, []);
+    const Track = styled.div`
+        img {
+            height:32px;
+            width:32px;
+        }
+    `
+    return (
+        <Track>
+            <img src={track.artworkUrl}></img>
+        </Track>
     );
 }
 
