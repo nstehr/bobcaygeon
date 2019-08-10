@@ -105,3 +105,23 @@ func (s *Server) ChangeZoneName(ctx context.Context, in *ZoneRequest) (*UpdateRe
 	}
 	return &UpdateResponse{ResponseCode: 200}, nil
 }
+
+// GetCurrentTrack gets the current track
+func (s *Server) GetCurrentTrack(ctx context.Context, in *GetTrackRequest) (*Track, error) {
+	if in.ZoneId == "" && in.SpeakerId == "" {
+		return &Track{}, nil
+	}
+	if in.ZoneId != "" {
+		t, err := s.service.GetTrackForZone(in.ZoneId)
+		if err != nil {
+			return &Track{}, nil
+		}
+		return &Track{Artist: t.Artist, Album: t.Album, Title: t.Title, Artwork: t.Artwork}, nil
+	} else {
+		t, err := s.service.GetTrackForSpeaker(in.SpeakerId)
+		if err != nil {
+			return &Track{}, nil
+		}
+		return &Track{Artist: t.Artist, Album: t.Album, Title: t.Title, Artwork: t.Artwork}, nil
+	}
+}

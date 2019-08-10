@@ -10,6 +10,8 @@ type MgmtService interface {
 	DeleteZone(zoneID string) error
 	ChangeZoneName(zoneID string, newName string) error
 	GetZones() []*Zone
+	GetTrackForZone(zoneID string) (*Track, error)
+	GetTrackForSpeaker(speakerID string) (*Track, error)
 }
 
 // Speaker speaker instance
@@ -23,4 +25,12 @@ type Zone struct {
 	ID          string
 	DisplayName string
 	Speakers    []*Speaker
+}
+
+// Track represents a track
+type Track struct {
+	Artist  string
+	Album   string
+	Title   string
+	Artwork []byte
 }

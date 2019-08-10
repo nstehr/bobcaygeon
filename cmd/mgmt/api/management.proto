@@ -11,6 +11,7 @@ service BobcaygeonManagement {
   rpc DeleteZone(ZoneRequest) returns (UpdateResponse) {}
   rpc ChangeZoneName(ZoneRequest) returns (UpdateResponse) {}
   rpc GetZones(GetZonesRequest) returns (GetZonesResponse) {}
+  rpc GetCurrentTrack(GetTrackRequest) returns (Track) {}
 }
 
 message Speaker {
@@ -46,6 +47,18 @@ message ZoneRequest {
 
 message GetZonesRequest {
   string zoneId = 1;
+}
+
+message GetTrackRequest {
+  string zoneId = 1;
+  string speakerId = 2;
+}
+
+message Track {
+  string artist = 1;
+	string album = 2;
+	string title = 3;
+	bytes artwork = 4;
 }
 
 message GetZonesResponse {

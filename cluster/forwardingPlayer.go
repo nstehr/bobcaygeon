@@ -17,10 +17,12 @@ import (
 
 // ForwardingPlayer will forward data packets to member nodes
 type ForwardingPlayer struct {
-	volLock  sync.RWMutex
-	volume   float64
-	sessions *sessionMap
-	ap       *oto.Player
+	volLock      sync.RWMutex
+	trackLock    sync.RWMutex
+	volume       float64
+	sessions     *sessionMap
+	ap           *oto.Player
+	currentTrack player.Track
 }
 
 // represents what a client calling an RTSP
@@ -202,6 +204,29 @@ func (p *ForwardingPlayer) Play(session *rtsp.Session) {
 		log.Println("Session data sending closed")
 	}(decoder)
 
+}
+
+// SetTrack sets the track for the player
+func (p *ForwardingPlayer) SetTrack(album string, artist string, title string) {
+	p.trackLock.Lock()
+	defer p.trackLock.Unlock()
+	p.currentTrack.Album = album
+	p.currentTrack.Artist = artist
+	p.currentTrack.Title = title
+}
+
+// SetAlbumArt sets the album art for the player
+func (p *ForwardingPlayer) SetAlbumArt(artwork []byte) {
+	p.trackLock.Lock()
+	defer p.trackLock.Unlock()
+	p.currentTrack.Artwork = artwork
+}
+
+// GetTrack returns the track
+func (p *ForwardingPlayer) GetTrack() player.Track {
+	p.trackLock.RLock()
+	defer p.trackLock.RUnlock()
+	return p.currentTrack
 }
 
 func (p *ForwardingPlayer) initSession(nodeName string, ip net.IP, port int) {

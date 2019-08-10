@@ -1,6 +1,6 @@
 import { from, timer } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
-import { GetSpeakersRequest, GetZonesRequest } from './management_pb.js';
+import { GetSpeakersRequest, GetZonesRequest, GetTrackRequest } from './management_pb.js';
 import { BobcaygeonManagementPromiseClient } from './management_grpc_web_pb.js';
 
 const DEFAULT_POLL_INTERVAL = 15000;
@@ -35,4 +35,10 @@ export const zoneListObservable = () => {
     return poll(() => {
         return mgmtService.getZones(request, {});
     })
+}
+
+export const getCurrentTrackForSpeakerObservable = (speakerId) => {
+    const request = new GetTrackRequest();
+    request.setSpeakerid(speakerId);
+    return from(mgmtService.getCurrentTrack(request));
 }

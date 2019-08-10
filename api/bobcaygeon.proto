@@ -6,6 +6,7 @@ service AirPlayManagement {
   rpc ChangeServiceName (NameChangeRequest) returns (ManagementResponse) {}
   rpc ForwardToNodes(AddRemoveNodesRequest) returns (ManagementResponse) {}
   rpc RemoveForwardToNodes(AddRemoveNodesRequest) returns (ManagementResponse) {}
+  rpc GetCurrentTrack(GetTrackRequest) returns (Track) {}
 }
 
 message AddRemoveNodesRequest {
@@ -19,6 +20,15 @@ message BroadcastRequest {
 
 message NameChangeRequest {
   string newName = 1;
+}
+
+message GetTrackRequest {}
+
+message Track {
+  string artist = 1;
+	string album = 2;
+	string title = 3;
+	bytes artwork = 4;
 }
 
 message ManagementResponse {
