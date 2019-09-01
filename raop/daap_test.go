@@ -40,3 +40,50 @@ func TestDAAPParse(t *testing.T) {
 		t.Error(fmt.Sprintf("Expected: %v\r\n Received: %s\r\n", "The Tragically Hip", val))
 	}
 }
+
+func TestDAAPEncode(t *testing.T) {
+	input := make(map[string]interface{})
+	input["dmap.itemkind"] = uint8(2)
+	input["daap.songalbum"] = "Phantom Power"
+	input["dmap.itemname"] = "Bobcaygeon"
+	input["daap.songartist"] = "The Tragically Hip"
+
+	encoded, err := EncodeDaap(input)
+
+	if err != nil {
+		t.Error("Unexpected error encoding daap")
+	}
+	parsed := parseDaap(encoded)
+
+	if len(parsed) != 4 {
+		t.Error(fmt.Sprintf("Expected: 4 entries\r\n Got: %d", len(parsed)))
+	}
+	val, ok := parsed["dmap.itemkind"]
+	if !ok {
+		t.Error(fmt.Sprintf("Expected to have dmap.itemkind key"))
+	}
+	if val.(uint8) != 2 {
+		t.Error(fmt.Sprintf("Expected: %v\r\n Received: %v\r\n", 2, val))
+	}
+	val, ok = parsed["daap.songalbum"]
+	if !ok {
+		t.Error(fmt.Sprintf("Expected to have daap.songalbum key"))
+	}
+	if val.(string) != "Phantom Power" {
+		t.Error(fmt.Sprintf("Expected: %v\r\n Received: %s\r\n", "Phantom Power", val))
+	}
+	val, ok = parsed["dmap.itemname"]
+	if !ok {
+		t.Error(fmt.Sprintf("Expected to have dmap.itemname key"))
+	}
+	if val.(string) != "Bobcaygeon" {
+		t.Error(fmt.Sprintf("Expected: %v\r\n Received: %s\r\n", "Bobcaygeon", val))
+	}
+	val, ok = parsed["daap.songartist"]
+	if !ok {
+		t.Error(fmt.Sprintf("Expected to have daap.songartist key"))
+	}
+	if val.(string) != "The Tragically Hip" {
+		t.Error(fmt.Sprintf("Expected: %v\r\n Received: %s\r\n", "The Tragically Hip", val))
+	}
+}

@@ -213,6 +213,34 @@ func (p *ForwardingPlayer) SetTrack(album string, artist string, title string) {
 	p.currentTrack.Album = album
 	p.currentTrack.Artist = artist
 	p.currentTrack.Title = title
+	// forward the track data downstream
+	go func() {
+		for _, s := range p.sessions.getSessions() {
+			client, err := rtsp.NewClient(s.RemotePorts.Address, s.rtspPort)
+			if err != nil {
+				log.Println("Error establishing RTSP connection", err)
+				continue
+			}
+			req := rtsp.NewRequest()
+			req.Method = rtsp.Set_Parameter
+			sessionID := strconv.FormatInt(time.Now().Unix(), 10)
+			localAddress := client.LocalAddress()
+			req.RequestURI = fmt.Sprintf("rtsp://%s/%s", localAddress, sessionID)
+			req.Headers["Content-Type"] = "application/x-dmap-tagged"
+			input := make(map[string]interface{})
+
+			input["daap.songalbum"] = album
+			input["dmap.itemname"] = title
+			input["daap.songartist"] = artist
+			body, err := raop.EncodeDaap(input)
+			if err != nil {
+				log.Println("Error encoding song information", err)
+				continue
+			}
+			req.Body = body
+			client.Send(req)
+		}
+	}()
 }
 
 // SetAlbumArt sets the album art for the player
@@ -220,6 +248,25 @@ func (p *ForwardingPlayer) SetAlbumArt(artwork []byte) {
 	p.trackLock.Lock()
 	defer p.trackLock.Unlock()
 	p.currentTrack.Artwork = artwork
+	// forward the album art downstream
+	go func() {
+		for _, s := range p.sessions.getSessions() {
+			client, err := rtsp.NewClient(s.RemotePorts.Address, s.rtspPort)
+			if err != nil {
+				log.Println("Error establishing RTSP connection", err)
+				continue
+			}
+			req := rtsp.NewRequest()
+			req.Method = rtsp.Set_Parameter
+			sessionID := strconv.FormatInt(time.Now().Unix(), 10)
+			localAddress := client.LocalAddress()
+			req.RequestURI = fmt.Sprintf("rtsp://%s/%s", localAddress, sessionID)
+			req.Headers["Content-Type"] = "image/jpeg"
+
+			req.Body = artwork
+			client.Send(req)
+		}
+	}()
 }
 
 // GetTrack returns the track
