@@ -47,7 +47,7 @@ func (dms *DistributedMgmtService) GetSpeakers() []*service.Speaker {
 }
 
 // SetDisplayName will change the user visible name of the speaker
-func (dms *DistributedMgmtService) SetDisplayName(ID string, displayName string) error {
+func (dms *DistributedMgmtService) SetDisplayName(ID string, displayName string, updateBroadcast bool) error {
 	if !dms.store.AmLeader() {
 		client, err := dms.getLeaderClient(dms.store.GetLeader())
 		if err != nil {
@@ -71,17 +71,20 @@ func (dms *DistributedMgmtService) SetDisplayName(ID string, displayName string)
 		speakerConfig.ID = ID
 	}
 	// first update the actual name broadcast by speaker
-	speakerClient, err := dms.getSpeakerClient(ID)
-	if err != nil {
-		return err
+	if (updateBroadcast) {
+		speakerClient, err := dms.getSpeakerClient(ID)
+		if err != nil {
+			return err
+		}
+		resp, err := speakerClient.ChangeServiceName(context.Background(), &speakerAPI.NameChangeRequest{NewName: displayName})
+		if err != nil {
+			return err
+		}
+		if resp.ReturnCode != 200 {
+			return fmt.Errorf("Error changing name of speaker")
+		}
 	}
-	resp, err := speakerClient.ChangeServiceName(context.Background(), &speakerAPI.NameChangeRequest{NewName: displayName})
-	if err != nil {
-		return err
-	}
-	if resp.ReturnCode != 200 {
-		return fmt.Errorf("Error changing name of speaker")
-	}
+	
 	// now we can save the display name in the store
 	speakerConfig.DisplayName = displayName
 	return dms.store.SaveSpeakerConfig(speakerConfig)

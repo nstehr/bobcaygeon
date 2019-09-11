@@ -28,7 +28,7 @@ func (s *Server) GetSpeakers(ctx context.Context, in *GetSpeakersRequest) (*GetS
 
 // SetDisplayNameForSpeaker will update the speakers display name
 func (s *Server) SetDisplayNameForSpeaker(ctx context.Context, in *SetSpeakerDisplayNameRequest) (*UpdateResponse, error) {
-	err := s.service.SetDisplayName(in.SpeakerId, in.DisplayName)
+	err := s.service.SetDisplayName(in.SpeakerId, in.DisplayName, in.UpdateBroadcast)
 	if err != nil {
 		return &UpdateResponse{ResponseCode: 500, Message: err.Error()}, nil
 	}

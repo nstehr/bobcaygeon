@@ -37,6 +37,7 @@ message GetSpeakersRequest {
 message SetSpeakerDisplayNameRequest {
   string speakerId = 1;
   string displayName = 2;
+  bool updateBroadcast = 3;
 }
 
 message ZoneRequest {

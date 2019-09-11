@@ -13,7 +13,7 @@ function SpeakerDetails(props) {
 
     const handleSubmit = (event) => {
         event.preventDefault();
-        changeDisplayNameForSpeaker(props.selectedSpeaker.getId(), displayName).then((resp) => {
+        changeDisplayNameForSpeaker(props.selectedSpeaker.getId(), displayName, false).then(() => {
             if (props.speakerUpdated) {
                 props.speakerUpdated();
             }

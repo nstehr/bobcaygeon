@@ -24,10 +24,11 @@ export const getCurrentTrackForSpeaker = async (speakerId) => {
     return trackResp;
 }
 
-export const changeDisplayNameForSpeaker = async (speakerId, displayName) => {
+export const changeDisplayNameForSpeaker = async (speakerId, displayName, updateBroadcast) => {
     const request = new SetSpeakerDisplayNameRequest();
     request.setSpeakerid(speakerId);
     request.setDisplayname(displayName);
+    request.setUpdatebroadcast(updateBroadcast);
     const changeRequest = await mgmtService.setDisplayNameForSpeaker(request);
     return changeRequest;
 

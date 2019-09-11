@@ -3,7 +3,7 @@ package service
 // MgmtService interface for handling management capabilities
 type MgmtService interface {
 	GetSpeakers() []*Speaker
-	SetDisplayName(ID string, displayName string) error
+	SetDisplayName(ID string, displayName string, updateBroadcast bool) error
 	CreateZone(displayName string, speakerIDs []string) (string, error)
 	AddSpeakersToZone(zoneID string, speakerIDs []string) error
 	RemoveSpeakersFromZone(zoneID string, speakerIDs []string) error
