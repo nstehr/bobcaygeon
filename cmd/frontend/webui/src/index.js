@@ -5,8 +5,7 @@ import { createGlobalStyle } from 'styled-components';
 // Import Components
 import Container from './components/container';
 import Header from './components/header';
-import SpeakerList from './components/speakerList';
-import ZoneList from './components/zoneList';
+import App from './components/app';
 
 // Global Style
 const GlobalStyle = createGlobalStyle`
@@ -26,9 +25,7 @@ const GlobalStyle = createGlobalStyle`
 ReactDOM.render(
   <Container>
     <Header>Bobcaygeon 🎸</Header>
-    <p>Manage your speakers and speaker zones</p>
-    <SpeakerList />
-    <ZoneList />
+    <App />
     <GlobalStyle />
   </Container>,
   document.getElementById('root')
