@@ -2,6 +2,42 @@ import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { changeDisplayNameForSpeaker } from '../api/service';
 
+const Details = styled.div`
+display: flex;
+flex-direction: column;
+align-items:center;
+padding-top: 30px;
+padding-bottom: 20px;
+margin-top: 15px;
+background: #474747;
+border-radius: 15px;
+`
+
+const Edit = styled.div`
+display: flex;
+
+i {
+    padding-right: 15px;
+    color: ${props => props.active ? "white" : "palevioletred"};
+    
+}
+`
+const EditForm = styled.div`
+display: flex;
+input[type="submit"]  
+{
+   margin-left: 15px;
+}
+input[type="text"]  
+{
+    border: 0;
+    outline: 0;
+    background: transparent;
+    border-bottom: 1px solid #212121;
+    color: #fff;
+}
+`
+
 function SpeakerDetails(props) {
     const [displayName, setDisplayName] = useState("");
     const [editMode, setEditMode] = useState(false);
@@ -25,43 +61,10 @@ function SpeakerDetails(props) {
         setDisplayName(event.target.value);
     }
 
-    const Details = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items:center;
-    padding-top: 30px;
-    padding-bottom: 20px;
-    margin-top: 15px;
-    background: #474747;
-    border-radius: 15px;
-    `
 
-    const Edit = styled.div`
-    display: flex;
-    
-    i {
-        padding-right: 15px;
-        color: ${props => props.active ? "white" : "palevioletred"};
-        
-    }
-    `
-    const EditForm = styled.div`
-    display: flex;
-    input[type="submit"]  
-    {
-       margin-left: 15px;
-    }
-    input[type="text"]  
-    {
-        border: 0;
-        outline: 0;
-        background: transparent;
-        border-bottom: 1px solid #212121;
-        color: #fff;
-    }
-    `
 
     return (
+        // Details and EditForm cause issues with focuss
         <Details>
             <Edit active={!editMode}>
                 <i className="material-icons" onClick={() => { setEditMode(!editMode) }}>edit</i>
@@ -69,7 +72,7 @@ function SpeakerDetails(props) {
             {editMode && (
                 <EditForm>
                     < form onSubmit={handleSubmit}>
-                        <input type="text" id="name" value={displayName} onChange={handleChange}></input>
+                        <input type="text" id="name" key="speakerName" value={displayName} onChange={handleChange}></input>
                         <input type="submit" value="Update" />
                     </form>
                 </EditForm>

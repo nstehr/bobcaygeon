@@ -26,11 +26,11 @@ function NowPlaying(props) {
         margin-top: 15px;
         background: #474747;
         border-radius: 30px;
-        width: 500px;
+        width: 300px;
     `
     const AlbumArt = styled.img`
-       height: 400px;
-       width: 400px;
+       height: 200px;
+       width: 200px;
     `
     const TrackDetails = styled.div`
        display: flex;
