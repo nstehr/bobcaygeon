@@ -2,7 +2,7 @@ language: go
 go:
 - tip
 env:
- - GO111MODULE=on
+- GO111MODULE=on
 services:
 - docker
 before_install:
@@ -18,7 +18,7 @@ addons:
 script:
 - "./build.sh"
 deploy:
-  provider: releases
+- provider: releases
   skip_cleanup: true # Important, otherwise the build output would be purged.
   api_key:
     secure: Lx+rl/fl/VnUTcP3q3oiEj++V0w1MKTvZHZkK7DeTf6v7qq4Az2zcCxKhzRQe+UpJ2dAh1bII9Ym2M8T+qCZP2YhMImjfBLfc4W7NEHn/9rkBPsYJ93UEhrT02DOn9qrWio0xn1UyH/h8snzwiXKuaovtu0k8Sw8jIsmy6FeHD8XOdjJ85ic6MiK88+ptija4t/G+sNWjFYCCha8wMpbuPtXl78Ik/xYHt33wHL+4JWWyLRT+MLuoIOuv+mryNbQzroxHRJxvjStRP4uDJfPZ0nMyxTqs2+3dtdwMs0KA7f/d11bw7ognnnS1sKyb87XfCpxkVUBRD2nE0hvlE68NXf/PxjnmD9ULC6a0g80W3O03a2MjpYdI8QfRoMxZ1yK4SPfdxN/SeAIJq3MzVhQVgyKlSMHp4Ksaq/cerhGtT/Zgb2W+/adVKK+jEfJhbudOZV1KmOW72PG2Mj5Qtk/0I+YsSPJFN6XzMZyU8iCsJGOfMfmOdAPGgtmCIDKZwa3sfUAsZ3jxFAztojwEffcoBreyn1Wzh0IQ7wxoPJulXc3HuAiVphShK7aRjSG34zk8AiIDXK+efzb119aeklUFBK5FmIsMZ+6/A0CcpZjbK3HobmYlO1v1+vj0Xzunv3BZwABOlN88coXshWYh7/cITcXx7aPGZ8AAyictvQPWS8=
@@ -27,3 +27,14 @@ deploy:
   on:
     repo: nstehr/bobcaygeon
     tags: true # The deployment happens only if the commit has a tag.
+- provider: gcs
+  skip_cleanup: true
+  access_key_id: GOOG1EZYEFSCRVSTPEWHOFHBP6CQ4QLAZE45IPZ4DTIBIKAR5EGNIVYOQTALA
+  secret_access_key:
+    secure: CYIWi89DeHbBPzUuTbBaa49BWAIXw0nZsVE2JMd0cRL3Q+XaHG7tlnDnYuVJKOCIaitWg0GOzzeBDUjraAcA2KKLYgw5Z2QKFwHun1yJOriQXhe88lWimVaBitiiVtD7RnVB5lGpick76LjQaRQ8gA/9Jh6gd+avjIi51qXdY4aOqijO3IBLIjTZQiOBNX+IAQzd/lWHjgO4cdkswUWB7ReYlf1+RDuMSLz4DpQzjh/7obtoDgKgYYpepmXyC2xKdnLC2H7Ixlnriy32Mxxwl7SdMigVS74T/bWt/7PcFaOONgkeBeMhnq5l6k+lZs+4yyk/md+k7p2MetUgS5tIM2GvBbnMT17Pp81tFMoXDVHL9APkm0Mnoec/ZUX3OlrrCoMqNfBQJxZOKEio7jOIOx+btwt9AZnn+5yhpDJW2efWFH3q/s98d5BO5nb5zYSGx7BnsvsjkHgKf3ce36lZQc9CYDAwWbnkA87fube5VlAP1ggType++Dpti34ME/Yxhw0ywOylxamLZmUURh1Rywmmbv0flaJ4QTgwVs1w64n8cJ3I9n9w+jakG+u/SAtL8bSHwyS0LG3X0HNXBFEGX1j9hwoTX18AGYsRH/+XIAdKCY3ItZ7WiahwGgejuUL4gkFiSyHCV/diVI9jY7aQYuh4cPs6ho2iOVVzojVSwz4=
+  bucket: bcg_artifacts
+  local-dir: artifacts
+  on:
+    repo: nstehr/bobcaygeon
+    all_branches: true
+    tags: false

@@ -42,14 +42,30 @@ echo "Packing UI using packr"
 packr2
 cd ../..
 
-go build -o bcg-$TRAVIS_OS_NAME cmd/bcg.go
-go build -o bcg-mgmt-$TRAVIS_OS_NAME cmd/mgmt/bcg-mgmt.go
-go build -o bcg-frontend-$TRAVIS_OS_NAME cmd/frontend/bcg-frontend.go
+BCG_VERSION=$TRAVIS_BUILD_NUMBER
+
+if [ ! -z "$TRAVIS_TAG" ]; then
+    echo "TAG is set"
+    BCG_VERSION=$TRAVIS_TAG
+fi
+
+
+
+go build -o bcg-$TRAVIS_OS_NAME-$BCG_VERSION cmd/bcg.go
+go build -o bcg-mgmt-$TRAVIS_OS_NAME-$BCG_VERSION cmd/mgmt/bcg-mgmt.go
+go build -o bcg-frontend-$TRAVIS_OS_NAME-$BCG_VERSION cmd/frontend/bcg-frontend.go
 
 #TODO: refactor linux build overall
 if [[ $TRAVIS_OS_NAME == 'linux' ]]
 then
    echo "executing docker based ARM build"
    ./init-arm-build.sh
+   mv bcg-arm bcg-arm-$BCG_VERSION
+   mv bcg-mgmt-arm bcg-mgmt-arm-$BCG_VERSION
+   mv bcg-mgmt-frontend bcg-frontend-arm-$BCG_VERSION
 fi  
+
+mkdir artifacts
+cp bcg* artifacts
+cp bcg-* artifacts
 
