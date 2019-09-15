@@ -1,4 +1,5 @@
 const path = require('path');
+const AppManifestWebpackPlugin = require('app-manifest-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ScriptExtHtmlWebpackPlugin = require('script-ext-html-webpack-plugin');
 const webpack = require('webpack');
@@ -44,9 +45,18 @@ module.exports = {
     ]
   },
   plugins: [
+    new AppManifestWebpackPlugin({
+      logo: './src/my-logo.png',
+      statsFilename: 'iconstats.json',
+      persistentCache: false,
+      prefix: '/ui',
+      config: {
+        path: '/public/',
+      },
+    }),
+
     new HtmlWebpackPlugin({
       template: './public/index.html',
-      favicon: './public/favicon.png',
       minify: {
         collapseWhitespace: true,
         removeComments: true,
@@ -56,6 +66,7 @@ module.exports = {
         useShortDoctype: true
       }
     }),
+
     new ScriptExtHtmlWebpackPlugin({
       prefetch: /\.js$/,
       defaultAttribute: 'async'
