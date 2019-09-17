@@ -64,7 +64,7 @@ then
    ./init-arm-build.sh
    mv bcg-arm bcg-arm-$BCG_VERSION
    mv bcg-mgmt-arm bcg-mgmt-arm-$BCG_VERSION
-   mv bcg-mgmt-frontend bcg-frontend-arm-$BCG_VERSION
+   mv bcg-frontend-arm bcg-frontend-arm-$BCG_VERSION
 fi  
 
 mkdir artifacts
