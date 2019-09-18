@@ -35,13 +35,10 @@ go install github.com/gobuffalo/packr/v2/packr2
 cd cmd/frontend/webui
 npm install
 npm run build
-ls dist
 # pack the UI using packr
 cd ..
 echo "Packing UI using packr"
-echo $PWD
-packr2 -v
-ls
+packr2
 cd ../..
 
 BCG_VERSION=$TRAVIS_BUILD_NUMBER
@@ -52,6 +49,7 @@ if [ ! -z "$TRAVIS_TAG" ]; then
 fi
 
 
+less cmd/frontend/main-packr.go
 
 go build -o bcg-$TRAVIS_OS_NAME-$BCG_VERSION cmd/bcg.go
 go build -o bcg-mgmt-$TRAVIS_OS_NAME-$BCG_VERSION cmd/mgmt/bcg-mgmt.go
