@@ -35,8 +35,6 @@ if [ ! -z "$TRAVIS_TAG" ]; then
 fi
 
 
-ls -la cmd/frontend/packrd
-
 go build -o bcg-$TRAVIS_OS_NAME-$BCG_VERSION cmd/bcg.go
 go build -o bcg-mgmt-$TRAVIS_OS_NAME-$BCG_VERSION cmd/mgmt/bcg-mgmt.go
 
