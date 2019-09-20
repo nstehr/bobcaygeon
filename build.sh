@@ -1,8 +1,5 @@
 #!/bin/bash
 
- echo $GOPATH
- unset GOPATH
-
 # executes the tests in each package, and collects their coverage
 echo "mode: set" > acc.out
 for Dir in $(go list ./...); 
