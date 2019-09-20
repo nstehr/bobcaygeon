@@ -31,7 +31,6 @@ go get github.com/mattn/goveralls
 export GOBIN=$PWD/bin
 export PATH=$GOBIN:$PATH
 go install github.com/golang/protobuf/protoc-gen-go
-go install github.com/gobuffalo/packr/v2/packr2
 
 protoc -I api/ --go_out=plugins=grpc:api api/bobcaygeon.proto
 protoc -I cmd/mgmt/api --go_out=plugins=grpc:cmd/mgmt/api cmd/mgmt/api/management.proto

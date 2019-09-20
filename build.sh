@@ -27,20 +27,6 @@ then
    $GOPATH/bin/goveralls -coverprofile=acc.out -service=travis-ci
 fi
 
-export GOBIN=$PWD/bin
-export PATH=$GOBIN:$PATH
-go install github.com/gobuffalo/packr/v2/packr2
-
-# build the UI code
-cd cmd/frontend/webui
-npm install
-npm run build
-# pack the UI using packr
-cd ..
-echo "Packing UI using packr"
-packr2
-cd ../..
-
 BCG_VERSION=$TRAVIS_BUILD_NUMBER
 
 if [ ! -z "$TRAVIS_TAG" ]; then
