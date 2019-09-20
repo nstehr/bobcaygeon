@@ -1,7 +1,7 @@
 #!/bin/bash
 
-sudo apt-get update
-sudo apt-get install libasound2-dev
+apt-get update
+apt-get -y install libasound2-dev
 
 export GOBIN=$PWD/bin
 export PATH=$GOBIN:$PATH
