@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # hack for now
-go mod vendor
+sudo go mod vendor
 
 docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
