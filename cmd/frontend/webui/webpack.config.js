@@ -52,6 +52,8 @@ module.exports = {
       prefix: '/ui',
       config: {
         path: '/public/',
+        start_url: '/ui',
+        appName: 'Bobcaygeon'
       },
     }),
 
