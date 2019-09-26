@@ -10,18 +10,43 @@ Multi room speaker application.
 Bobcaygeon is a multi-room speaker application.  Built on top of Apple airplay, the goal is an application that will run on a raspberry pi (or similar hardware) capable of playing streamed music on one or many hardware deployments.  With an initial goal of the same music on every speaker, and eventual goal of more fine grained control.
 
 ## Current Status
-Full functional airplay server; Basic multi-room functionality.  Will stream to multiple clients.
-Currently tested on OSX and on raspberry pi.
+Full functional airplay server; Basic multi-room functionality.  Will stream to multiple clients.  
+Standalone frontend to provide a basic UI into the running cluster of speakers.  High level API to control speakers
+and build zones.
+
+Currently tested on OSX, raspberry pi and linux x86.
+
 
 ## Build
-I've followed the practice of committing vendor (https://github.com/golang/dep/blob/master/docs/FAQ.md#should-i-commit-my-vendor-directory)
+
 1. `go build cmd/bcg.go`
+2. `go build cmd/mgmt/bcg-mgmt.go`
+
+### Frontend build
+Install packr2
+
+```
+export GOBIN=$PWD/bin
+export PATH=$GOBIN:$PATH
+go install github.com/gobuffalo/packr/v2/packr2
+```
+
+```
+1. cd cmd/frontend/webui
+2. npm install && npm run build
+3. cd ..
+4. packr2
+5. cd ../..
+6. go build cmd/frontend/bcg-frontend.go
+```
 
 To regenerate the the grpc service:
 `protoc -I api/ --go_out=plugins=grpc:api api/bobcaygeon.proto`
 `protoc -I cmd/mgmt/api --go_out=plugins=grpc:cmd/mgmt/api cmd/mgmt/api/management.proto`
 `protoc -I=cmd/mgmt/api cmd/mgmt/api/management.proto --js_out=import_style=commonjs:cmd/frontend/webui`
 `protoc -I=cmd/mgmt/api cmd/mgmt/api/management.proto --grpc-web_out=import_style=commonjs,mode=grpcwebtext:cmd/frontend/webui`
+
+Or use `build_protos.sh`
 
 
 ## Run
@@ -38,3 +63,6 @@ have ALSA setup, with the development headers (libasound2-dev)
 
 You need to enable ipv6 on your raspberry pi.  To do this, add `ipv6` to your `/etc/modules` and reboot
 the pi.
+
+## Dev Builds
+Dev builds can be found in the google storage bucket here: [bcg_artifacts](https://storage.googleapis.com/bcg_artifacts)
