@@ -22,6 +22,11 @@ type DistributedMgmtService struct {
 	store *DistributedStore
 }
 
+type closableClient struct {
+	speakerAPI.AirPlayManagementClient
+	*grpc.ClientConn
+}
+
 // NewDistributedMgmtService instantiates the DistributedMgmtService
 func NewDistributedMgmtService(nodes *memberlist.Memberlist, store *DistributedStore) *DistributedMgmtService {
 	return &DistributedMgmtService{nodes: nodes, store: store}
@@ -71,11 +76,12 @@ func (dms *DistributedMgmtService) SetDisplayName(ID string, displayName string,
 		speakerConfig.ID = ID
 	}
 	// first update the actual name broadcast by speaker
-	if (updateBroadcast) {
+	if updateBroadcast {
 		speakerClient, err := dms.getSpeakerClient(ID)
 		if err != nil {
 			return err
 		}
+		defer speakerClient.Close()
 		resp, err := speakerClient.ChangeServiceName(context.Background(), &speakerAPI.NameChangeRequest{NewName: displayName})
 		if err != nil {
 			return err
@@ -84,7 +90,7 @@ func (dms *DistributedMgmtService) SetDisplayName(ID string, displayName string,
 			return fmt.Errorf("Error changing name of speaker")
 		}
 	}
-	
+
 	// now we can save the display name in the store
 	speakerConfig.DisplayName = displayName
 	return dms.store.SaveSpeakerConfig(speakerConfig)
@@ -120,6 +126,7 @@ func (dms *DistributedMgmtService) CreateZone(displayName string, speakerIDs []s
 		if err != nil {
 			return "", err
 		}
+		defer client.Close()
 		// first, clear any sessions the speakers may have
 		log.Printf("Clearing sessions from: %s \n", speakerID)
 		_, err = client.RemoveForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{RemoveAll: true})
@@ -153,6 +160,7 @@ func (dms *DistributedMgmtService) CreateZone(displayName string, speakerIDs []s
 		if err != nil {
 			return "", err
 		}
+		defer client.Close()
 		forwardToIDs := make([]string, 0)
 		for _, v := range speakerIDs {
 			if v != zc.Leader {
@@ -207,6 +215,7 @@ func (dms *DistributedMgmtService) AddSpeakersToZone(zoneID string, speakerIDs [
 		if err != nil {
 			return err
 		}
+		defer client.Close()
 		// first, clear any sessions the speakers may have
 		log.Printf("Clearing sessions from: %s \n", speakerID)
 		_, err = client.RemoveForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{RemoveAll: true})
@@ -225,6 +234,7 @@ func (dms *DistributedMgmtService) AddSpeakersToZone(zoneID string, speakerIDs [
 	if err != nil {
 		return err
 	}
+	defer client.Close()
 	log.Printf("Telling %s to forward to nodes \n", zone.Leader)
 	_, err = client.ForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{Ids: speakerIDs})
 	if err != nil {
@@ -273,7 +283,7 @@ func (dms *DistributedMgmtService) RemoveSpeakersFromZone(zoneID string, speaker
 		if err != nil {
 			return err
 		}
-
+		defer client.Close()
 		// re-enable removed speakers broadcasting
 		_, err = client.ToggleBroadcast(context.Background(), &speakerAPI.BroadcastRequest{ShouldBroadcast: true})
 		if err != nil {
@@ -285,7 +295,7 @@ func (dms *DistributedMgmtService) RemoveSpeakersFromZone(zoneID string, speaker
 	if err != nil {
 		return err
 	}
-
+	defer client.Close()
 	_, err = client.RemoveForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{Ids: speakerIDs})
 	if err != nil {
 		return err
@@ -343,7 +353,7 @@ func (dms *DistributedMgmtService) DeleteZone(zoneID string) error {
 		if err != nil {
 			return err
 		}
-
+		defer client.Close()
 		// re-enable broadcasting
 		log.Printf("Setting broadcast to true for: %s \n", speakerID)
 		_, err = client.ToggleBroadcast(context.Background(), &speakerAPI.BroadcastRequest{ShouldBroadcast: true})
@@ -357,6 +367,7 @@ func (dms *DistributedMgmtService) DeleteZone(zoneID string) error {
 		if err != nil {
 			return err
 		}
+		defer client.Close()
 		log.Printf("Clearing sessions from: %s \n", zone.Leader)
 		_, err = client.RemoveForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{RemoveAll: true})
 		if err != nil {
@@ -410,6 +421,7 @@ func (dms *DistributedMgmtService) ChangeZoneName(zoneID string, newName string)
 	if err != nil {
 		return err
 	}
+	defer client.Close()
 	log.Printf("Changing service name of: %s from: %s to: %s", zone.Leader, zone.DisplayName, newName)
 	_, err = client.ChangeServiceName(context.Background(), &speakerAPI.NameChangeRequest{NewName: newName})
 	if err != nil {
@@ -458,6 +470,7 @@ func (dms *DistributedMgmtService) GetTrackForZone(zoneID string) (*service.Trac
 	if err != nil {
 		return nil, err
 	}
+	defer client.Close()
 	track, err := client.GetCurrentTrack(context.Background(), &speakerAPI.GetTrackRequest{})
 	if err != nil {
 		return nil, err
@@ -471,6 +484,7 @@ func (dms *DistributedMgmtService) GetTrackForSpeaker(speakerID string) (*servic
 	if err != nil {
 		return nil, err
 	}
+	defer client.Close()
 	track, err := client.GetCurrentTrack(context.Background(), &speakerAPI.GetTrackRequest{})
 	if err != nil {
 		return nil, err
@@ -522,7 +536,7 @@ func (dms *DistributedMgmtService) getLeaderClient(leader string) (api.Bobcaygeo
 	return client, nil
 }
 
-func (dms *DistributedMgmtService) getSpeakerClient(speakerID string) (speakerAPI.AirPlayManagementClient, error) {
+func (dms *DistributedMgmtService) getSpeakerClient(speakerID string) (*closableClient, error) {
 
 	filter := func(node *memberlist.Node) bool {
 		meta := cluster.DecodeNodeMeta(node.Meta)
@@ -542,5 +556,6 @@ func (dms *DistributedMgmtService) getSpeakerClient(speakerID string) (speakerAP
 		return nil, err
 	}
 	client := speakerAPI.NewAirPlayManagementClient(conn)
-	return client, nil
+	c := &closableClient{client, conn}
+	return c, nil
 }
