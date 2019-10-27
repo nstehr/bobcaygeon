@@ -154,8 +154,16 @@ func (dms *DistributedMgmtService) CreateZone(displayName string, speakerIDs []s
 			}
 		}
 	}
-	// finally, add the ids to be forwarded to
+
 	if len(speakerIDs) > 0 {
+
+		// make sure that no other speakers are forwarding to the ones we are using for this zone
+		err := dms.removeFromAllSpeakers(speakerIDs)
+		if err != nil {
+			return "", err
+		}
+
+		// finally, add the ids to be forwarded to
 		client, err := dms.getSpeakerClient(zc.Leader)
 		if err != nil {
 			return "", err
@@ -228,6 +236,12 @@ func (dms *DistributedMgmtService) AddSpeakersToZone(zoneID string, speakerIDs [
 		if err != nil {
 			return err
 		}
+	}
+
+	// make sure that no other speakers are forwarding to the ones we are using for this zone
+	err := dms.removeFromAllSpeakers(speakerIDs)
+	if err != nil {
+		return err
 	}
 
 	client, err := dms.getSpeakerClient(zone.Leader)
@@ -502,6 +516,23 @@ func (dms *DistributedMgmtService) getLeaderAPIAddress(leader *net.TCPAddr) stri
 		}
 	}
 	return ""
+}
+
+func (dms *DistributedMgmtService) removeFromAllSpeakers(speakerIDs []string) error {
+	speakers := dms.GetSpeakers()
+	for _, speaker := range speakers {
+		log.Printf("removing speakers from: %s\n", speaker.ID)
+		client, err := dms.getSpeakerClient(speaker.ID)
+		if err != nil {
+			return err
+		}
+		_, err = client.RemoveForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{Ids: speakerIDs})
+		if err != nil {
+			return err
+		}
+		client.Close()
+	}
+	return nil
 }
 
 func isLocalIP(ipAddr string) bool {
