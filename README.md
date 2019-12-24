@@ -7,7 +7,7 @@
 Multi room speaker application.
 
 ## Overview
-Bobcaygeon is a multi-room speaker application.  Built on top of Apple airplay, the goal is an application that will run on a raspberry pi (or similar hardware) capable of playing streamed music on one or many hardware deployments.  With an initial goal of the same music on every speaker, and eventual goal of more fine grained control.
+Bobcaygeon is a multi-room speaker application.  Built on top of Apple airplay, Bobcaygeon is an application (more specifically a set of applications) that will run on a raspberry pi (or similar hardware) capable of playing streamed music on one or many hardware deployments. 
 
 ## Current Status
 Full functional airplay server; Basic multi-room functionality.  Will stream to multiple clients.  
@@ -56,6 +56,17 @@ Or use `build_protos.sh`
   -verbose
         Verbose logging; logs requests and response
 ```
+
+## Usage
+There are a couple of ways you can run the bobcaygeon system.
+1. Install one or more instances of the `bcg` application on your pi's/computers.  By default, the first instance of 
+a `bcg` application in the cluster will act as the leader, and every subsequent instance will join in.  This is the simplest way to get multi-room streaming, but a pi in each room, load up `bcg` on each one, and then you can connect over airplay.
+2. The slighly more advanced method of deploying atleast one `bcg-mgmt` and `bcg-frontend` instance.  This will give you both a management API and a simple frontend web UI.  If you want to use the web ui provided by `bcg-frontend` you'll also need to start an instance of the Envoy proxy.  You can use the `launch_envoy.sh` script for that.
+
+## API
+There are two layers of API to interact with, if you would like.  Both are built on grpc.
+1. Each instance of `bcg` has a basic GRPC API: https://github.com/nstehr/bobcaygeon/blob/master/api/bobcaygeon.proto
+2. `bcg-mgmt` has a richer management GRPC API: https://github.com/nstehr/bobcaygeon/blob/master/cmd/mgmt/api/management.proto
 
 ## Raspberry Pi Notes
 You can grab the `bcg-arm` build and drop it on your raspberry pi.  You'll need to make sure you
