@@ -7,6 +7,7 @@ import (
 	"github.com/nstehr/bobcaygeon/rtsp"
 )
 
+// CodecHandler handler function for receiving raw bytes and decoding them using some codec
 type CodecHandler func(data []byte) ([]byte, error)
 
 var codecMap = map[string]CodecHandler{
@@ -20,6 +21,7 @@ func decodeAlac(data []byte) ([]byte, error) {
 	return decoder.Decode(data), nil
 }
 
+// GetCodec determins the appropriate codec from the rtsp session
 func GetCodec(session *rtsp.Session) CodecHandler {
 	var decoder CodecHandler
 	rtpmap := session.Description.Attributes["rtpmap"]

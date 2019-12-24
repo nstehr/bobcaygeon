@@ -25,13 +25,34 @@ done
 if [[ $TRAVIS_OS_NAME == 'osx' ]]
 then
    $GOPATH/bin/goveralls -coverprofile=acc.out -service=travis-ci
-fi  
+fi
 
-go build -o bcg-$TRAVIS_OS_NAME cmd/bcg.go
+BCG_VERSION=$TRAVIS_BUILD_NUMBER
+
+if [ ! -z "$TRAVIS_TAG" ]; then
+    echo "TAG is set"
+    BCG_VERSION=$TRAVIS_TAG
+fi
+
+
+go build -o bcg-$TRAVIS_OS_NAME-$BCG_VERSION cmd/bcg.go
+go build -o bcg-mgmt-$TRAVIS_OS_NAME-$BCG_VERSION cmd/mgmt/bcg-mgmt.go
+
 
 #TODO: refactor linux build overall
 if [[ $TRAVIS_OS_NAME == 'linux' ]]
 then
+   echo "building linux frontend binary"
+   ./build-frontend-docker.sh
+   mv bcg-frontend-linux bcg-frontend-linux-$BCG_VERSION
    echo "executing docker based ARM build"
    ./init-arm-build.sh
+   mv bcg-arm bcg-arm-$BCG_VERSION
+   mv bcg-mgmt-arm bcg-mgmt-arm-$BCG_VERSION
+   mv bcg-frontend-arm bcg-frontend-arm-$BCG_VERSION
 fi  
+
+mkdir artifacts
+cp bcg* artifacts
+cp bcg-* artifacts
+

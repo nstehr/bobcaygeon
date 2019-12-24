@@ -7,27 +7,66 @@
 Multi room speaker application.
 
 ## Overview
-Bobcaygeon is a multi-room speaker application.  Built on top of Apple airplay, the goal is an application that will run on a raspberry pi (or similar hardware) capable of playing streamed music on one or many hardware deployments.  With an initial goal of the same music on every speaker, and eventual goal of more fine grained control.
+Bobcaygeon is a multi-room speaker application.  Built on top of Apple airplay, Bobcaygeon is an application (more specifically a set of applications) that will run on a raspberry pi (or similar hardware) capable of playing streamed music on one or many hardware deployments. 
 
 ## Current Status
-Full functional airplay server; Basic multi-room functionality.  Will stream to multiple clients.
-Currently tested on OSX and on raspberry pi.
+Full functional airplay server; Basic multi-room functionality.  Will stream to multiple clients.  
+Standalone frontend to provide a basic UI into the running cluster of speakers.  High level API to control speakers
+and build zones.
+
+Currently tested on OSX, raspberry pi and linux x86.
+
 
 ## Build
-I've followed the practice of committing vendor (https://github.com/golang/dep/blob/master/docs/FAQ.md#should-i-commit-my-vendor-directory)
+
 1. `go build cmd/bcg.go`
+2. `go build cmd/mgmt/bcg-mgmt.go`
+
+### Frontend build
+Install packr2
+
+```
+export GOBIN=$PWD/bin
+export PATH=$GOBIN:$PATH
+go install github.com/gobuffalo/packr/v2/packr2
+```
+
+```
+1. cd cmd/frontend/webui
+2. npm install && npm run build
+3. cd ..
+4. packr2
+5. cd ../..
+6. go build cmd/frontend/bcg-frontend.go
+```
+
+To regenerate the the grpc service:
+`protoc -I api/ --go_out=plugins=grpc:api api/bobcaygeon.proto`
+`protoc -I cmd/mgmt/api --go_out=plugins=grpc:cmd/mgmt/api cmd/mgmt/api/management.proto`
+`protoc -I=cmd/mgmt/api cmd/mgmt/api/management.proto --js_out=import_style=commonjs:cmd/frontend/webui`
+`protoc -I=cmd/mgmt/api cmd/mgmt/api/management.proto --grpc-web_out=import_style=commonjs,mode=grpcwebtext:cmd/frontend/webui`
+
+Or use `build_protos.sh`
+
 
 ## Run
 ```
--name string
-        The name for the service. (default "Bobcaygeon")
-  -port int
-        Set the port the service is listening to. (default 5000)
+-config string
+        Config file to run the service, see `bcg.toml` and `bcg-mgmt.toml`
   -verbose
         Verbose logging; logs requests and response
-  -clusterPort
-        Port to listen for cluster events (default 7676)
 ```
+
+## Usage
+There are a couple of ways you can run the bobcaygeon system.
+1. Install one or more instances of the `bcg` application on your pi's/computers.  By default, the first instance of 
+a `bcg` application in the cluster will act as the leader, and every subsequent instance will join in.  This is the simplest way to get multi-room streaming, but a pi in each room, load up `bcg` on each one, and then you can connect over airplay.
+2. The slighly more advanced method of deploying atleast one `bcg-mgmt` and `bcg-frontend` instance.  This will give you both a management API and a simple frontend web UI.  If you want to use the web ui provided by `bcg-frontend` you'll also need to start an instance of the Envoy proxy.  You can use the `launch_envoy.sh` script for that.
+
+## API
+There are two layers of API to interact with, if you would like.  Both are built on grpc.
+1. Each instance of `bcg` has a basic GRPC API: https://github.com/nstehr/bobcaygeon/blob/master/api/bobcaygeon.proto
+2. `bcg-mgmt` has a richer management GRPC API: https://github.com/nstehr/bobcaygeon/blob/master/cmd/mgmt/api/management.proto
 
 ## Raspberry Pi Notes
 You can grab the `bcg-arm` build and drop it on your raspberry pi.  You'll need to make sure you
@@ -35,3 +74,6 @@ have ALSA setup, with the development headers (libasound2-dev)
 
 You need to enable ipv6 on your raspberry pi.  To do this, add `ipv6` to your `/etc/modules` and reboot
 the pi.
+
+## Dev Builds
+Dev builds can be found in the google storage bucket here: [bcg_artifacts](https://storage.googleapis.com/bcg_artifacts)

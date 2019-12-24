@@ -7,11 +7,16 @@ import (
 	"github.com/nstehr/bobcaygeon/sdp"
 
 	"github.com/nstehr/bobcaygeon/rtsp"
+	"github.com/nstehr/bobcaygeon/player"
 )
 
 type FakePlayer struct{}
 
-func (FakePlayer) Play(session *rtsp.Session) {}
+func (FakePlayer) Play(session *rtsp.Session)                         {}
+func (FakePlayer) SetVolume(volume float64)                           {}
+func (FakePlayer) SetTrack(album string, artist string, title string) {}
+func (FakePlayer) SetAlbumArt(artwork []byte)                         {}
+func (FakePlayer) GetTrack() player.Track                                    { return player.Track{} }
 
 func TestHandleOptions(t *testing.T) {
 	req := rtsp.NewRequest()
@@ -35,26 +40,28 @@ func TestHandleOptions(t *testing.T) {
 }
 
 func TestHandleSetup(t *testing.T) {
-	a := NewAirplayServer(444, 333, "Test", FakePlayer{})
+	a := NewAirplayServer(444, "Test", FakePlayer{})
 	s := rtsp.NewSession(sdp.NewSessionDescription(), nil)
-	a.session = s
 	req := rtsp.NewRequest()
 	req.Headers["Transport"] = "RTP/AVP/UDP;unicast;interleaved=0-1;mode=record;control_port=8888;timing_port=8889"
 	resp := rtsp.NewResponse()
 	localAddress := "192.168.0.15"
 	remoteAddress := "10.0.0.0"
+	as := newAirplaySession(s, nil)
+	a.sessions.addSession(remoteAddress, as)
 	a.handleSetup(req, resp, localAddress, remoteAddress)
 	if resp.Status != rtsp.Ok {
 		t.Error(fmt.Sprintf("Expected: %s\r\n Got: %s", rtsp.Ok.String(), resp.Status.String()))
 	}
-	if a.session.RemotePorts.Address != remoteAddress {
-		t.Error(fmt.Sprintf("Expected: %s\r\n Got: %s", remoteAddress, a.session.RemotePorts.Address))
+	retrievedSession := a.sessions.getSession(remoteAddress).session
+	if retrievedSession.RemotePorts.Address != remoteAddress {
+		t.Error(fmt.Sprintf("Expected: %s\r\n Got: %s", remoteAddress, retrievedSession.RemotePorts.Address))
 	}
-	if a.session.RemotePorts.Control != 8888 {
-		t.Error(fmt.Sprintf("Expected: %d\r\n Got: %d", 8888, a.session.RemotePorts.Control))
+	if retrievedSession.RemotePorts.Control != 8888 {
+		t.Error(fmt.Sprintf("Expected: %d\r\n Got: %d", 8888, retrievedSession.RemotePorts.Control))
 	}
-	if a.session.RemotePorts.Timing != 8889 {
-		t.Error(fmt.Sprintf("Expected: %d\r\n Got: %d", 8889, a.session.RemotePorts.Timing))
+	if retrievedSession.RemotePorts.Timing != 8889 {
+		t.Error(fmt.Sprintf("Expected: %d\r\n Got: %d", 8889, retrievedSession.RemotePorts.Timing))
 	}
 	_, ok := resp.Headers["Transport"]
 	if !ok {
@@ -73,5 +80,52 @@ func TestHandleSetup(t *testing.T) {
 	}
 	if val != "connected" {
 		t.Error(fmt.Sprintf("Expected: %s\r\n Got: %s", "connected", val))
+	}
+}
+
+func TestChangeName(t *testing.T) {
+	a := NewAirplayServer(444, "Test", FakePlayer{})
+	err := a.ChangeName("Foo")
+	if err != nil {
+		t.Error("Unexpected error", err)
+	}
+}
+
+func TestChangeNameFailOnEmpty(t *testing.T) {
+	a := NewAirplayServer(444, "Test", FakePlayer{})
+	err := a.ChangeName("")
+	if err == nil {
+		t.Error("Expected error, received none")
+	}
+}
+
+func TestMuteCalculated(t *testing.T) {
+	normalized := normalizeVolume(-144)
+	if normalized != 0 {
+		t.Error(fmt.Sprintf("Expected: %d\r\n Got: %f", 0, normalized))
+	}
+}
+
+func TestFullVolumeCalculated(t *testing.T) {
+	normalized := normalizeVolume(0)
+	if normalized != 1 {
+		t.Error(fmt.Sprintf("Expected: %d\r\n Got: %f", 1, normalized))
+	}
+}
+
+func TestIncomingMinValue(t *testing.T) {
+	normalized := normalizeVolume(-30)
+	if normalized != 0 {
+		t.Error(fmt.Sprintf("Expected: %d\r\n Got: %f", 0, normalized))
+	}
+}
+
+func TestIncomingValues(t *testing.T) {
+	// range can be between 0 and -30, test all values
+	for i := float64(0); i >= -30; i = i - 0.1 {
+		normalized := normalizeVolume(i)
+		if normalized < 0 || normalized > 1 {
+			t.Error(fmt.Sprintf("Outputted value not in expected range: %f", normalized))
+		}
 	}
 }

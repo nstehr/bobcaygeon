@@ -1,0 +1,9 @@
+
+[node]
+  api-port = 7778
+  cluster-port = 7677
+  name = "aware-guinea"
+
+[mgmt]
+  raft-port = 5432
+  storage-dir = "./mgmt"

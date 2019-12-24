@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+option go_package = "api";
+
+service BobcaygeonManagement {
+  rpc GetSpeakers (GetSpeakersRequest) returns (GetSpeakersResponse) {}
+  rpc SetDisplayNameForSpeaker (SetSpeakerDisplayNameRequest) returns (UpdateResponse) {}
+  rpc CreateZone (ZoneRequest) returns (CreateResponse) {}
+  rpc AddSpeakersToZone (ZoneRequest) returns (UpdateResponse) {}
+  rpc RemoveSpeakersFromZone (ZoneRequest) returns (UpdateResponse) {}
+  rpc DeleteZone(ZoneRequest) returns (UpdateResponse) {}
+  rpc ChangeZoneName(ZoneRequest) returns (UpdateResponse) {}
+  rpc GetZones(GetZonesRequest) returns (GetZonesResponse) {}
+  rpc GetCurrentTrack(GetTrackRequest) returns (Track) {}
+}
+
+message Speaker {
+    string id = 1;
+    string displayName = 2;
+}
+
+message Zone {
+  string id = 1;
+  string displayName = 2;
+  repeated Speaker speakers = 3;
+}
+
+message GetSpeakersResponse {
+  repeated Speaker speakers = 1;
+  int32 returnCode = 2;
+}
+
+message GetSpeakersRequest {
+  string speakerId = 1;
+}
+
+message SetSpeakerDisplayNameRequest {
+  string speakerId = 1;
+  string displayName = 2;
+  bool updateBroadcast = 3;
+}
+
+message ZoneRequest {
+  string zoneId = 1;
+  string displayName = 2;
+  repeated string speakerIds = 3;
+}
+
+message GetZonesRequest {
+  string zoneId = 1;
+}
+
+message GetTrackRequest {
+  string zoneId = 1;
+  string speakerId = 2;
+}
+
+message Track {
+  string artist = 1;
+	string album = 2;
+	string title = 3;
+	bytes artwork = 4;
+}
+
+message GetZonesResponse {
+  repeated Zone zones = 1;
+  int32 returnCode = 2;
+}
+
+message CreateResponse {
+  int32 responseCode = 1;
+  string id = 2;
+  string message = 3;
+}
+
+message UpdateResponse {
+  int32 responseCode = 1;
+  string message = 2;
+}

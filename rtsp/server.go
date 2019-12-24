@@ -82,6 +82,7 @@ func read(conn net.Conn, handlers map[Method]RequestHandler, verbose bool) {
 
 		handler, exists := handlers[request.Method]
 		if !exists {
+			log.Printf("Method: %s does not have a handler. Skipping", request.Method)
 			continue
 		}
 		resp := NewResponse()

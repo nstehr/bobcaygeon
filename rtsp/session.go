@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
+	"strings"
 
 	"github.com/nstehr/bobcaygeon/sdp"
 )
@@ -31,8 +33,9 @@ type Session struct {
 	decrypter   Decrypter
 	RemotePorts PortSet
 	LocalPorts  PortSet
-	dataConn    net.Conn // even though we have all ports, will only open up the data connection to start
+	dataConn    net.Conn
 	DataChan    chan []byte
+	stopChan    chan (struct{})
 }
 
 // NewSession instantiates a new Session
@@ -40,15 +43,9 @@ func NewSession(description *sdp.SessionDescription, decrypter Decrypter) *Sessi
 	return &Session{Description: description, decrypter: decrypter, DataChan: make(chan []byte, 1000)}
 }
 
-// Close closes a session
-func (s *Session) Close() {
-	s.dataConn.Close()
-	close(s.DataChan)
-}
-
-// StartReceiving starts a session for listening for data
-func (s *Session) StartReceiving() error {
-	addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", s.LocalPorts.Data))
+// InitReceive initializes the session to for receiving
+func (s *Session) InitReceive() error {
+	addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf(":%d", 0))
 	if err != nil {
 		return err
 	}
@@ -58,15 +55,37 @@ func (s *Session) StartReceiving() error {
 	}
 	// keep track of the actual connection so we close it later
 	s.dataConn = conn
+	localAddr := strings.Split(conn.LocalAddr().String(), ":")
+	port := localAddr[len(localAddr)-1]
+	s.LocalPorts.Data, _ = strconv.Atoi(port)
+	return nil
+}
+
+// Close closes a session
+func (s *Session) Close(closeDone chan struct{}) {
+	log.Println("closing session")
+	s.stopChan = closeDone
+	if s.dataConn != nil {
+		s.dataConn.Close()
+	} else {
+		log.Println("Currently no data connection...")
+		s.stopChan <- struct{}{}
+	}
+}
+
+// StartReceiving starts a session for listening for data
+func (s *Session) StartReceiving() error {
 	// start listening for audio data
 	log.Println("Session started.  Listening for audio packets")
-	go func() {
+	go func(conn *net.UDPConn) {
 		buf := make([]byte, readBuffer)
 		for {
 			n, _, err := conn.ReadFromUDP(buf)
 			if err != nil {
 				log.Println("Error reading data from socket: " + err.Error())
-				return
+				close(s.DataChan)
+				conn = nil
+				break
 			}
 			packet := buf[:n]
 			// send the data to the decoder
@@ -83,7 +102,11 @@ func (s *Session) StartReceiving() error {
 			copy(send, d)
 			s.DataChan <- send
 		}
-	}()
+		log.Println("Signalling Session is closed")
+		if s.stopChan != nil {
+			s.stopChan <- struct{}{}
+		}
+	}(s.dataConn.(*net.UDPConn))
 	return nil
 }
 

@@ -2,6 +2,7 @@ package raop
 
 import (
 	"encoding/binary"
+	"fmt"
 	"log"
 )
 
@@ -34,6 +35,43 @@ func parseDaap(daap []byte) map[string]interface{} {
 	return parsedData
 }
 
+// EncodeDaap will take a map and encode it in daap format
+func EncodeDaap(dataToEncode map[string]interface{}) ([]byte, error) {
+	var buf []byte
+	// can't find why, but I found needed to add a padding before the daap data
+	padding := make([]byte, 8)
+	binary.BigEndian.PutUint64(padding, uint64(0))
+	// we first add a padding, from the sample I captured from apple it started
+	// with these bytes: 109, 108, 105, 116, 0, 0, 6, 17 but for now I'll just add 0s
+	buf = append(buf, padding...)
+	for k, v := range dataToEncode {
+		ct := getContentTypeForName(k)
+		itemType := ct.code
+		field := []byte(itemType)
+		// format is dataType, dataLength, data
+		buf = append(buf, field...)
+		var length []byte
+		var data []byte
+		if ct.cType == "byte" {
+			data = make([]byte, 1)
+			data[0] = v.(uint8)
+			length = make([]byte, 4)
+			// length of type byte is... one byte :)
+			binary.BigEndian.PutUint32(length, 1)
+		}
+		if ct.cType == "string" {
+			data = []byte(fmt.Sprintf("%s", v))
+			length = make([]byte, 4)
+			// add in the length of the data we want to encode
+			binary.BigEndian.PutUint32(length, uint32(len(data)))
+		}
+		buf = append(buf, length...)
+		buf = append(buf, data...)
+	}
+
+	return buf, nil
+}
+
 func getContentType(code string) contentType {
 	ct := contentType{}
 	// there is a whole TON of types that can come back
@@ -53,7 +91,32 @@ func getContentType(code string) contentType {
 		ct.name = "daap.songartist"
 	case "minm":
 		ct.cType = "string"
-		ct.code = "mimn"
+		ct.code = "minm"
+		ct.name = "dmap.itemname"
+	}
+	return ct
+}
+
+func getContentTypeForName(name string) contentType {
+	ct := contentType{}
+	// there is a whole TON of types that can come back
+	// only parse out the ones we are interested in for now
+	switch name {
+	case "dmap.itemkind":
+		ct.cType = "byte"
+		ct.code = "mikd"
+		ct.name = "dmap.itemkind"
+	case "daap.songalbum":
+		ct.cType = "string"
+		ct.code = "asal"
+		ct.name = "daap.songalbum"
+	case "daap.songartist":
+		ct.cType = "string"
+		ct.code = "asar"
+		ct.name = "daap.songartist"
+	case "dmap.itemname":
+		ct.cType = "string"
+		ct.code = "minm"
 		ct.name = "dmap.itemname"
 	}
 	return ct
