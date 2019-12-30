@@ -15,6 +15,7 @@ import (
 	"github.com/nstehr/bobcaygeon/api"
 	"github.com/nstehr/bobcaygeon/cluster"
 	"github.com/nstehr/bobcaygeon/player"
+	"github.com/nstehr/bobcaygeon/player/forwarding"
 	"github.com/nstehr/bobcaygeon/raop"
 	"github.com/pelletier/go-toml"
 	"google.golang.org/grpc"
@@ -83,7 +84,7 @@ func main() {
 
 	var delegates []memberlist.EventDelegate
 	var streamPlayer player.Player
-	forwardingPlayer, err := cluster.NewForwardingPlayer()
+	forwardingPlayer, err := forwarding.NewPlayer()
 	if err != nil {
 		panic("Failed to initialize player" + err.Error())
 	}
@@ -142,7 +143,7 @@ func main() {
 	log.Println("Goodbye.")
 }
 
-func startAPIServer(apiServerPort int, airplayServer *raop.AirplayServer, forwardingPlayer *cluster.ForwardingPlayer, nodes *memberlist.Memberlist) {
+func startAPIServer(apiServerPort int, airplayServer *raop.AirplayServer, forwardingPlayer *forwarding.Player, nodes *memberlist.Memberlist) {
 	// create a listener
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", apiServerPort))
 	if err != nil {

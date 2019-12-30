@@ -1,4 +1,4 @@
-package cluster
+package forwarding
 
 import (
 	"fmt"
@@ -10,13 +10,14 @@ import (
 
 	"github.com/hajimehoshi/oto"
 	"github.com/hashicorp/memberlist"
+	"github.com/nstehr/bobcaygeon/cluster"
 	"github.com/nstehr/bobcaygeon/player"
 	"github.com/nstehr/bobcaygeon/raop"
 	"github.com/nstehr/bobcaygeon/rtsp"
 )
 
-// ForwardingPlayer will forward data packets to member nodes
-type ForwardingPlayer struct {
+// Player will forward data packets to member nodes
+type Player struct {
 	volLock      sync.RWMutex
 	trackLock    sync.RWMutex
 	volume       float64
@@ -82,18 +83,18 @@ func (sm *sessionMap) getSessions() []*clientSession {
 	return sessions
 }
 
-// NewForwardingPlayer instantiates a new ForwardingPlayer
-func NewForwardingPlayer() (*ForwardingPlayer, error) {
+// NewPlayer instantiates a new Player
+func NewPlayer() (*Player, error) {
 	ap, err := oto.NewPlayer(44100, 2, 2, 10000)
 	if err != nil {
 		return nil, err
 	}
-	return &ForwardingPlayer{sessions: newSessionMap(), volume: 1, ap: ap}, nil
+	return &Player{sessions: newSessionMap(), volume: 1, ap: ap}, nil
 }
 
 // NotifyJoin is invoked when a node is detected to have joined.
 // The Node argument must not be modified.
-func (p *ForwardingPlayer) NotifyJoin(node *memberlist.Node) {
+func (p *Player) NotifyJoin(node *memberlist.Node) {
 	log.Println("Node Joined " + node.Name)
 	p.AddSessionForNode(node)
 
@@ -101,7 +102,7 @@ func (p *ForwardingPlayer) NotifyJoin(node *memberlist.Node) {
 
 // NotifyLeave is invoked when a node is detected to have left.
 // The Node argument must not be modified.
-func (p *ForwardingPlayer) NotifyLeave(node *memberlist.Node) {
+func (p *Player) NotifyLeave(node *memberlist.Node) {
 	log.Println("Node Left" + node.Name)
 	p.RemoveSessionForNode(node)
 }
@@ -109,40 +110,40 @@ func (p *ForwardingPlayer) NotifyLeave(node *memberlist.Node) {
 // NotifyUpdate is invoked when a node is detected to have
 // updated, usually involving the meta data. The Node argument
 // must not be modified.
-func (*ForwardingPlayer) NotifyUpdate(node *memberlist.Node) {
+func (*Player) NotifyUpdate(node *memberlist.Node) {
 	log.Println("Node updated" + node.Name)
 
 }
 
 // AddSessionForNode will create a session to the given node
-func (p *ForwardingPlayer) AddSessionForNode(node *memberlist.Node) {
+func (p *Player) AddSessionForNode(node *memberlist.Node) {
 	log.Println("Adding session for node: " + node.Name)
-	meta := DecodeNodeMeta(node.Meta)
-	if meta.NodeType == Music {
+	meta := cluster.DecodeNodeMeta(node.Meta)
+	if meta.NodeType == cluster.Music {
 		go p.initSession(node.Name, node.Addr, meta.RtspPort)
 	}
 }
 
 // RemoveSessionForNode will remove the session for the given node
-func (p *ForwardingPlayer) RemoveSessionForNode(node *memberlist.Node) {
+func (p *Player) RemoveSessionForNode(node *memberlist.Node) {
 	log.Println("Removing session for node: " + node.Name)
-	meta := DecodeNodeMeta(node.Meta)
+	meta := cluster.DecodeNodeMeta(node.Meta)
 	// TODO: should probably explicitly close the session.
 	// next connection to node will do that, so it should be ok
 	// for now
-	if meta.NodeType == Music {
+	if meta.NodeType == cluster.Music {
 		p.sessions.removeSession(node.Name)
 	}
 }
 
 // RemoveAllSessions will remove all the active forwarding sessions
-func (p *ForwardingPlayer) RemoveAllSessions() {
+func (p *Player) RemoveAllSessions() {
 	log.Println("Removing all forwarding sessions")
 	p.sessions.removeAll()
 }
 
 // SetVolume accepts a float between 0 (mute) and 1 (full volume)
-func (p *ForwardingPlayer) SetVolume(volume float64) {
+func (p *Player) SetVolume(volume float64) {
 	p.volLock.Lock()
 	defer p.volLock.Unlock()
 	p.volume = volume
@@ -171,7 +172,7 @@ func (p *ForwardingPlayer) SetVolume(volume float64) {
 
 // Play will play the packets received on the specified session
 // and forward the packets on
-func (p *ForwardingPlayer) Play(session *rtsp.Session) {
+func (p *Player) Play(session *rtsp.Session) {
 	decoder := player.GetCodec(session)
 
 	go func(dc player.CodecHandler) {
@@ -207,7 +208,7 @@ func (p *ForwardingPlayer) Play(session *rtsp.Session) {
 }
 
 // SetTrack sets the track for the player
-func (p *ForwardingPlayer) SetTrack(album string, artist string, title string) {
+func (p *Player) SetTrack(album string, artist string, title string) {
 	p.trackLock.Lock()
 	defer p.trackLock.Unlock()
 	p.currentTrack.Album = album
@@ -244,7 +245,7 @@ func (p *ForwardingPlayer) SetTrack(album string, artist string, title string) {
 }
 
 // SetAlbumArt sets the album art for the player
-func (p *ForwardingPlayer) SetAlbumArt(artwork []byte) {
+func (p *Player) SetAlbumArt(artwork []byte) {
 	p.trackLock.Lock()
 	defer p.trackLock.Unlock()
 	p.currentTrack.Artwork = artwork
@@ -270,13 +271,13 @@ func (p *ForwardingPlayer) SetAlbumArt(artwork []byte) {
 }
 
 // GetTrack returns the track
-func (p *ForwardingPlayer) GetTrack() player.Track {
+func (p *Player) GetTrack() player.Track {
 	p.trackLock.RLock()
 	defer p.trackLock.RUnlock()
 	return p.currentTrack
 }
 
-func (p *ForwardingPlayer) initSession(nodeName string, ip net.IP, port int) {
+func (p *Player) initSession(nodeName string, ip net.IP, port int) {
 
 	session, err := raop.EstablishSession(ip.String(), port)
 

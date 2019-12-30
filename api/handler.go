@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/memberlist"
 	"github.com/nstehr/bobcaygeon/cluster"
+	"github.com/nstehr/bobcaygeon/player/forwarding"
 	"github.com/nstehr/bobcaygeon/raop"
 	"golang.org/x/net/context"
 )
@@ -12,12 +13,12 @@ import (
 // Server represents the gRPC server
 type Server struct {
 	airplayServer    *raop.AirplayServer
-	forwardingPlayer *cluster.ForwardingPlayer
+	forwardingPlayer *forwarding.Player
 	nodes            *memberlist.Memberlist
 }
 
 // NewServer instantiates a new RPC server
-func NewServer(airplayServer *raop.AirplayServer, forwardingPlayer *cluster.ForwardingPlayer, nodes *memberlist.Memberlist) *Server {
+func NewServer(airplayServer *raop.AirplayServer, forwardingPlayer *forwarding.Player, nodes *memberlist.Memberlist) *Server {
 	return &Server{airplayServer: airplayServer, forwardingPlayer: forwardingPlayer, nodes: nodes}
 }
 
