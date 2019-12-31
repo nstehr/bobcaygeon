@@ -60,7 +60,7 @@ Or use `build_protos.sh`
 ## Usage
 There are a couple of ways you can run the bobcaygeon system.
 1. Install one or more instances of the `bcg` application on your pi's/computers.  By default, the first instance of 
-a `bcg` application in the cluster will act as the leader, and every subsequent instance will join in.  This is the simplest way to get multi-room streaming, but a pi in each room, load up `bcg` on each one, and then you can connect over airplay.
+a `bcg` application in the cluster will act as the leader, and every subsequent instance will join in.  This is the simplest way to get multi-room streaming, put a pi in each room, load up `bcg` on each one, and then you can connect over airplay.
 2. The slighly more advanced method of deploying atleast one `bcg-mgmt` and `bcg-frontend` instance.  This will give you both a management API and a simple frontend web UI.  If you want to use the web ui provided by `bcg-frontend` you'll also need to start an instance of the Envoy proxy.  You can use the `launch_envoy.sh` script for that.
 
 ## API
@@ -76,4 +76,4 @@ You need to enable ipv6 on your raspberry pi.  To do this, add `ipv6` to your `/
 the pi.
 
 ## Dev Builds
-Dev builds can be found in the google storage bucket here: [bcg_artifacts](https://storage.googleapis.com/bcg_artifacts)
+Dev builds can be found in the google storage bucket here: [bcg_artifacts](https://storage.googleapis.com/bcg_artifacts).  This will be the most up to date builds, and they should be relatively stable
