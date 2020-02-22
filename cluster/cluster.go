@@ -27,6 +27,7 @@ const (
 )
 
 const (
+	// ServiceType is the type used to advertise the cluster to join
 	ServiceType = "_bobcaygeon._tcp"
 )
 
