@@ -42,11 +42,12 @@ type conf struct {
 }
 
 type memberHandler struct {
-	store *raft.DistributedStore
+	store   *raft.DistributedStore
+	service *raft.DistributedMgmtService
 }
 
-func newMemberHandler(ds *raft.DistributedStore) *memberHandler {
-	return &memberHandler{store: ds}
+func newMemberHandler(ds *raft.DistributedStore, service *raft.DistributedMgmtService) *memberHandler {
+	return &memberHandler{store: ds, service: service}
 }
 
 // NotifyJoin is invoked when a node is detected to have joined.
@@ -73,6 +74,10 @@ func (m *memberHandler) NotifyLeave(node *memberlist.Node) {
 	if meta.NodeType == cluster.Mgmt {
 
 	}
+	if meta.NodeType == cluster.Music {
+		go m.service.HandleMusicNodeLeave(node)
+	}
+
 }
 
 // NotifyUpdate is invoked when a node is detected to have
@@ -137,10 +142,10 @@ func main() {
 		panic("Failed to join cluster: " + err.Error())
 	}
 	store := initDistributedStore(list, config.Node.Name, config.Mgmt.RaftPort, config.Mgmt.StorageDir)
+	service := raft.NewDistributedMgmtService(list, store)
 	// sets up the delegate to handle when members join or leave
-	c.Events = cluster.NewEventDelegate([]memberlist.EventDelegate{newMemberHandler(store)})
-
-	go startAPIServer(config.Node.APIPort, list, store)
+	c.Events = cluster.NewEventDelegate([]memberlist.EventDelegate{newMemberHandler(store, service)})
+	go startAPIServer(config.Node.APIPort, list, service)
 	// Clean exit.
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
@@ -155,14 +160,12 @@ func main() {
 
 }
 
-func startAPIServer(apiServerPort int, list *memberlist.Memberlist, store *raft.DistributedStore) {
+func startAPIServer(apiServerPort int, list *memberlist.Memberlist, service *raft.DistributedMgmtService) {
 	// create a listener
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", apiServerPort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-
-	service := raft.NewDistributedMgmtService(list, store)
 	s := api.NewServer(service)
 	// create a gRPC server object
 	grpcServer := grpc.NewServer()

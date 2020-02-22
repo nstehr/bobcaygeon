@@ -590,3 +590,71 @@ func (dms *DistributedMgmtService) getSpeakerClient(speakerID string) (*closable
 	c := &closableClient{client, conn}
 	return c, nil
 }
+
+// HandleMusicNodeLeave will try to preserve any zone by promoting a new leader,
+// if it is the leader who has left
+func (dms *DistributedMgmtService) HandleMusicNodeLeave(node *memberlist.Node) {
+	if !dms.store.AmLeader() {
+		return
+	}
+	log.Printf("%s has left, checking if leading a zone\n", node.Name)
+	zones := dms.store.GetZoneConfigs()
+	var updateZone ZoneConfig
+	needToUpdate := false
+	for _, zone := range zones {
+		if zone.Leader == node.Name {
+			log.Printf("%s was leading zone: %s\n", node.Name, zone.DisplayName)
+			updateZone = zone
+			needToUpdate = true
+			break
+		}
+	}
+	if !needToUpdate {
+		return
+	}
+
+	// find the first alive member of the zone to be promoted
+	filter := func(node *memberlist.Node) bool {
+		for _, speaker := range updateZone.Speakers {
+			if node.Name == speaker {
+				return true
+			}
+		}
+		return false
+	}
+	candidates := cluster.FilterMembersByFn(filter, dms.nodes)
+	if len(candidates) <= 0 {
+		log.Printf("No suitable leader found for: %s/n", updateZone.DisplayName)
+		return
+	}
+	newLeader := candidates[0]
+	client, err := dms.getSpeakerClient(newLeader.Name)
+	if err != nil {
+		log.Printf("Could not get client for speaker: %s, %s", newLeader.Name, err)
+		return
+	}
+	log.Printf("New leader is: %s", newLeader.Name)
+	var ids []string
+	for _, id := range updateZone.Speakers {
+		if id != newLeader.Name {
+			ids = append(ids, id)
+		}
+	}
+	_, err = client.ForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{Ids: ids})
+	if err != nil {
+		log.Println("Error creating new forwarding request", err)
+		return
+	}
+	_, err = client.ChangeServiceName(context.Background(), &speakerAPI.NameChangeRequest{NewName: updateZone.DisplayName})
+	if err != nil {
+		log.Println("Error changing service name", err)
+		return
+	}
+	_, err = client.ToggleBroadcast(context.Background(), &speakerAPI.BroadcastRequest{ShouldBroadcast: true})
+	if err != nil {
+		log.Println("Error toggling broadcast", err)
+		return
+	}
+	updateZone.Leader = newLeader.Name
+	dms.store.SaveZoneConfig(updateZone)
+}
