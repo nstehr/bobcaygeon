@@ -27,7 +27,7 @@ const (
 )
 
 const (
-	ServiceType = "_bobcaygeonTest._tcp"
+	ServiceType = "_bobcaygeon._tcp"
 )
 
 // NodeMeta is metadata passed to other members about this node
