@@ -1,7 +1,8 @@
+//go:generate statik -src=./webui/dist -include=*.jpg,*.png,*.json,*.html,*.css,*.js,*.xml,*.ico
+
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -9,17 +10,17 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"net/http"
 
 	petname "github.com/dustinkirkland/golang-petname"
-	"github.com/gobuffalo/packr/v2"
 	"github.com/grandcat/zeroconf"
 	"github.com/hashicorp/memberlist"
 	"github.com/nstehr/bobcaygeon/cluster"
 	"github.com/nstehr/bobcaygeon/cmd/frontend/control"
+	_ "github.com/nstehr/bobcaygeon/cmd/frontend/statik"
 	toml "github.com/pelletier/go-toml"
+	"github.com/rakyll/statik/fs"
 )
 
 var (
@@ -165,26 +166,14 @@ func main() {
 }
 
 func setupWebApp(port int) {
-	box := packr.New("bcgWebApp", "./webui/dist")
-	// this is the only way I could for the life of me get static content
-	// serving to work.  Kept getting stuck with redirects when ever I tried
-	// to use:
-	// http.Handle("/", http.FileServer(box))
-	http.HandleFunc("/ui/", func(w http.ResponseWriter, r *http.Request) {
-		// poor man's strip prefix
-		f := r.URL.Path[3:]
-		if f == "/" {
-			f = "index.html"
-		}
-		s, err := box.Find(f)
-		if err != nil {
-			if os.IsNotExist(err) {
-				http.NotFound(w, r)
-				return
-			}
-		}
-		http.ServeContent(w, r, r.URL.Path, time.Time{}, bytes.NewReader(s))
-	})
+
 	log.Printf("Service Web UI on port: %d\n", port)
+
+	statikFS, err := fs.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	http.Handle("/webui/", http.StripPrefix("/webui/", http.FileServer(statikFS)))
 	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }

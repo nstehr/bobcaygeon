@@ -1,11 +1,11 @@
 #!/bin/bash
 export GOBIN=$PWD/bin
 export PATH=$GOBIN:$PATH
-go install github.com/gobuffalo/packr/v2/packr2
+go install github.com/rakyll/statik
 
 cd cmd/frontend
-echo "packing web ui using packr2"
-packr2
+echo "packing web ui using rakyll/statik"
+go generate
 
 cd ../..
 

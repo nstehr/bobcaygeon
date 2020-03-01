@@ -23,19 +23,19 @@ Currently tested on OSX, raspberry pi and linux x86.
 2. `go build cmd/mgmt/bcg-mgmt.go`
 
 ### Frontend build
-Install packr2
+Install rakyll/statik
 
 ```
 export GOBIN=$PWD/bin
 export PATH=$GOBIN:$PATH
-go install github.com/gobuffalo/packr/v2/packr2
+go install github.com/rakyll/statik
 ```
 
 ```
 1. cd cmd/frontend/webui
 2. npm install && npm run build
 3. cd ..
-4. packr2
+4. go generate
 5. cd ../..
 6. go build cmd/frontend/bcg-frontend.go
 ```

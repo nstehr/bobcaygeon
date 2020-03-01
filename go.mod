@@ -28,6 +28,7 @@ require (
 	github.com/maghul/alac v0.0.0-20161106215514-129591bceef4
 	github.com/miekg/dns v0.0.0-20171103161535-b38dc3dcb734 // indirect
 	github.com/pelletier/go-toml v1.2.0
+	github.com/rakyll/statik v0.1.7
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
 	google.golang.org/appengine v1.4.0 // indirect

@@ -3,5 +3,4 @@ vendor/*
 **/*/*_pb.js
 cmd/frontend/webui/dist/*
 cmd/frontend/webui/node_modules/*
-cmd/frontend/packrd/*
-cmd/frontend/main-packr.go
+cmd/frontend/statik/*
