@@ -591,6 +591,95 @@ func (dms *DistributedMgmtService) getSpeakerClient(speakerID string) (*closable
 	return c, nil
 }
 
+// HandleMusicNodeJoin will try to bring the music node back to the zone it belongs
+func (dms *DistributedMgmtService) HandleMusicNodeJoin(node *memberlist.Node) {
+	if !dms.store.AmLeader() {
+		return
+	}
+	log.Printf("%s has re-joined, checking if it belongs in a zone\n", node.Name)
+	zones := dms.store.GetZoneConfigs()
+	var updateZone ZoneConfig
+	wasLeader := false
+	needToUpdate := false
+	for _, zone := range zones {
+		if zone.Leader == node.Name {
+			log.Printf("%s was leading zone: %s\n", node.Name, zone.DisplayName)
+			updateZone = zone
+			needToUpdate = true
+			wasLeader = true
+			break
+		}
+		for _, member := range zone.Speakers {
+			if member == node.Name {
+				log.Printf("%s was member of zone: %s\n", node.Name, zone.DisplayName)
+				updateZone = zone
+				needToUpdate = true
+			}
+		}
+	}
+	if !needToUpdate {
+		return
+	}
+
+	// for both cases, where this node is a member or a leader, we will remove it from the other speakers
+	dms.removeFromAllSpeakers([]string{node.Name})
+
+	if wasLeader {
+		client, err := dms.getSpeakerClient(node.Name)
+		if err != nil {
+			log.Printf("Could not get client for speaker: %s, %s", node.Name, err)
+			return
+		}
+		// if was a leader, we will: add any members that need to be forwarded to it,
+		// update its name and make sure it broadcasts
+		// first find all active members of the zone
+		filter := func(node *memberlist.Node) bool {
+			for _, speaker := range updateZone.Speakers {
+				if node.Name == speaker {
+					return true
+				}
+			}
+			return false
+		}
+		active := cluster.FilterMembersByFn(filter, dms.nodes)
+		var ids []string
+		for _, a := range active {
+			if a.Name != node.Name {
+				ids = append(ids, a.Name)
+			}
+		}
+		_, err = client.ForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{Ids: ids})
+		if err != nil {
+			log.Println("Error creating new forwarding request", err)
+			return
+		}
+		_, err = client.ChangeServiceName(context.Background(), &speakerAPI.NameChangeRequest{NewName: updateZone.DisplayName})
+		if err != nil {
+			log.Println("Error changing service name", err)
+			return
+		}
+		_, err = client.ToggleBroadcast(context.Background(), &speakerAPI.BroadcastRequest{ShouldBroadcast: true})
+		if err != nil {
+			log.Println("Error toggling broadcast", err)
+			return
+		}
+
+		return
+	}
+	// if was not a leader, just add it back to its zone
+	log.Printf("re-adding %s to zone: %s\n", node.Name, updateZone.DisplayName)
+	client, err := dms.getSpeakerClient(updateZone.Leader)
+	if err != nil {
+		log.Printf("Could not get client for speaker: %s, %s", node.Name, err)
+		return
+	}
+	_, err = client.ForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{Ids: []string{node.Name}})
+	if err != nil {
+		log.Println("Error creating new forwarding request", err)
+		return
+	}
+}
+
 // HandleMusicNodeLeave will try to preserve any zone by promoting a new leader,
 // if it is the leader who has left
 func (dms *DistributedMgmtService) HandleMusicNodeLeave(node *memberlist.Node) {

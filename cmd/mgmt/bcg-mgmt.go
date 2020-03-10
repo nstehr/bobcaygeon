@@ -63,6 +63,9 @@ func (m *memberHandler) NotifyJoin(node *memberlist.Node) {
 			log.Println("Problem joining distributed store: ", err)
 		}
 	}
+	if meta.NodeType == cluster.Music {
+		go m.service.HandleMusicNodeJoin(node)
+	}
 
 }
 
