@@ -678,6 +678,17 @@ func (dms *DistributedMgmtService) HandleMusicNodeJoin(node *memberlist.Node) {
 		log.Println("Error creating new forwarding request", err)
 		return
 	}
+	// explicitly turn off broadcast if we were not a leader
+	client, err = dms.getSpeakerClient(node.Name)
+	if err != nil {
+		log.Printf("Could not get client for speaker: %s, %s", node.Name, err)
+		return
+	}
+	_, err = client.ToggleBroadcast(context.Background(), &speakerAPI.BroadcastRequest{ShouldBroadcast: true})
+	if err != nil {
+		log.Println("Error toggling broadcast", err)
+		return
+	}
 }
 
 // HandleMusicNodeLeave will try to preserve any zone by promoting a new leader,
