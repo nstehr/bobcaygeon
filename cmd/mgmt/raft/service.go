@@ -648,19 +648,20 @@ func (dms *DistributedMgmtService) HandleMusicNodeJoin(node *memberlist.Node) {
 				ids = append(ids, a.Name)
 			}
 		}
+		log.Printf("Adding %v to %s\n", ids, node.Name)
 		_, err = client.ForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{Ids: ids})
 		if err != nil {
 			log.Println("Error creating new forwarding request", err)
 			return
 		}
-		_, err = client.ChangeServiceName(context.Background(), &speakerAPI.NameChangeRequest{NewName: updateZone.DisplayName})
-		if err != nil {
-			log.Println("Error changing service name", err)
-			return
-		}
 		_, err = client.ToggleBroadcast(context.Background(), &speakerAPI.BroadcastRequest{ShouldBroadcast: true})
 		if err != nil {
 			log.Println("Error toggling broadcast", err)
+			return
+		}
+		_, err = client.ChangeServiceName(context.Background(), &speakerAPI.NameChangeRequest{NewName: updateZone.DisplayName})
+		if err != nil {
+			log.Println("Error changing service name", err)
 			return
 		}
 
@@ -671,12 +672,12 @@ func (dms *DistributedMgmtService) HandleMusicNodeJoin(node *memberlist.Node) {
 	client, err := dms.getSpeakerClient(updateZone.Leader)
 	if err != nil {
 		log.Printf("Could not get client for speaker: %s, %s", node.Name, err)
-		return
-	}
-	_, err = client.ForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{Ids: []string{node.Name}})
-	if err != nil {
-		log.Println("Error creating new forwarding request", err)
-		return
+	} else {
+		_, err = client.ForwardToNodes(context.Background(), &speakerAPI.AddRemoveNodesRequest{Ids: []string{node.Name}})
+		if err != nil {
+			log.Println("Error creating new forwarding request", err)
+			return
+		}
 	}
 	// explicitly turn off broadcast if we were not a leader
 	client, err = dms.getSpeakerClient(node.Name)
@@ -684,7 +685,7 @@ func (dms *DistributedMgmtService) HandleMusicNodeJoin(node *memberlist.Node) {
 		log.Printf("Could not get client for speaker: %s, %s", node.Name, err)
 		return
 	}
-	_, err = client.ToggleBroadcast(context.Background(), &speakerAPI.BroadcastRequest{ShouldBroadcast: true})
+	_, err = client.ToggleBroadcast(context.Background(), &speakerAPI.BroadcastRequest{ShouldBroadcast: false})
 	if err != nil {
 		log.Println("Error toggling broadcast", err)
 		return

@@ -101,19 +101,11 @@ func main() {
 	// if the entry is nil, then we didn't find a cluster to join, so assume leadership
 	if entry == nil {
 		log.Println("starting cluster, I am now initial leader")
-		log.Println("broadcasting my join info")
-		// start broadcasting the service
-		server, err := zeroconf.Register(nodeName, cluster.ServiceType, "local.", config.Node.ClusterPort, []string{"txtv=0", "lo=1", "la=2"}, nil)
-		if err != nil {
-			log.Println("Error starting zeroconf service", err)
-		}
-
 		delegates = append(delegates, forwardingPlayer)
 
 		nd := cluster.NewEventDelegate(delegates)
 		c.Events = nd
 
-		defer server.Shutdown()
 		advertise = true
 	} else {
 		log.Println("Joining cluster")
@@ -121,7 +113,24 @@ func main() {
 		if err != nil {
 			panic("Failed to join cluster: " + err.Error())
 		}
+		musicNodes := cluster.FilterMembers(cluster.Music, list)
+		if len(musicNodes) <= 1 {
+			log.Println("I am only music node, becoming leader")
+			delegates = append(delegates, forwardingPlayer)
+
+			nd := cluster.NewEventDelegate(delegates)
+			c.Events = nd
+			advertise = true
+		}
 	}
+
+	// start broadcasting the service
+	log.Println("broadcasting my join info")
+	server, err := zeroconf.Register(nodeName, cluster.ServiceType, "local.", config.Node.ClusterPort, []string{"txtv=0", "lo=1", "la=2"}, nil)
+	if err != nil {
+		log.Println("Error starting zeroconf service", err)
+	}
+	defer server.Shutdown()
 
 	airplayServer := raop.NewAirplayServer(config.Rtsp.Port, config.Rtsp.Name, streamPlayer)
 	go airplayServer.Start(*verbose, advertise)

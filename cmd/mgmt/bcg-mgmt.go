@@ -10,10 +10,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/grandcat/zeroconf"
 	"github.com/nstehr/bobcaygeon/cmd/mgmt/raft"
 
 	petname "github.com/dustinkirkland/golang-petname"
-	"github.com/grandcat/zeroconf"
 	"github.com/hashicorp/memberlist"
 	"github.com/nstehr/bobcaygeon/cluster"
 	"github.com/nstehr/bobcaygeon/cmd/mgmt/api"
@@ -127,23 +127,23 @@ func main() {
 
 	list, err := memberlist.Create(c)
 
-	var entry *zeroconf.ServiceEntry
-	found := false
+	entry := cluster.SearchForCluster()
 
-	// since we are a management node, we are an 'add on' so we will loop
-	// until we know that there is atleast one bcg music playing node
-	for found != true {
-		entry = cluster.SearchForCluster()
-		if entry != nil {
-			found = true
+	if entry != nil {
+		log.Println("Joining cluster")
+		_, err = list.Join([]string{fmt.Sprintf("%s:%d", entry.AddrIPv4[0].String(), entry.Port)})
+		if err != nil {
+			panic("Failed to join cluster: " + err.Error())
 		}
 	}
-
-	log.Println("Joining cluster")
-	_, err = list.Join([]string{fmt.Sprintf("%s:%d", entry.AddrIPv4[0].String(), entry.Port)})
+	// start broadcasting the service
+	log.Println("broadcasting my join info")
+	server, err := zeroconf.Register(nodeName, cluster.ServiceType, "local.", config.Node.ClusterPort, []string{"txtv=0", "lo=1", "la=2"}, nil)
 	if err != nil {
-		panic("Failed to join cluster: " + err.Error())
+		log.Println("Error starting zeroconf service", err)
 	}
+	defer server.Shutdown()
+
 	store := initDistributedStore(list, config.Node.Name, config.Mgmt.RaftPort, config.Mgmt.StorageDir)
 	service := raft.NewDistributedMgmtService(list, store)
 	// sets up the delegate to handle when members join or leave
