@@ -174,6 +174,6 @@ func setupWebApp(port int) {
 		log.Fatal(err)
 	}
 
-	http.Handle("/webui/", http.StripPrefix("/webui/", http.FileServer(statikFS)))
+	http.Handle("/ui/", http.StripPrefix("/ui/", http.FileServer(statikFS)))
 	http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 }
