@@ -7,6 +7,7 @@ service AirPlayManagement {
   rpc ForwardToNodes(AddRemoveNodesRequest) returns (ManagementResponse) {}
   rpc RemoveForwardToNodes(AddRemoveNodesRequest) returns (ManagementResponse) {}
   rpc GetCurrentTrack(GetTrackRequest) returns (Track) {}
+  rpc GetMuted(GetMutedRequest) returns  (SpeakerMuteResponse) {}
 }
 
 message AddRemoveNodesRequest {
@@ -23,6 +24,7 @@ message NameChangeRequest {
 }
 
 message GetTrackRequest {}
+message GetMutedRequest {}
 
 message Track {
   string artist = 1;
@@ -34,4 +36,8 @@ message Track {
 message ManagementResponse {
   int32 returnCode = 1;
   string message = 2;
+}
+
+message SpeakerMuteResponse {
+  bool isMuted = 1;
 }

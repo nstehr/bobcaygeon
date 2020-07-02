@@ -12,6 +12,8 @@ service BobcaygeonManagement {
   rpc ChangeZoneName(ZoneRequest) returns (UpdateResponse) {}
   rpc GetZones(GetZonesRequest) returns (GetZonesResponse) {}
   rpc GetCurrentTrack(GetTrackRequest) returns (Track) {}
+  rpc SetMuteForSpeaker(SetMuteRequest) returns (UpdateResponse) {}
+  rpc GetMuteForSpeaker(GetMuteRequest) returns (SpeakerMuteResponse) {}
 }
 
 message Speaker {
@@ -60,6 +62,19 @@ message Track {
 	string album = 2;
 	string title = 3;
 	bytes artwork = 4;
+}
+
+message SetMuteRequest {
+  string speakerId = 1;
+  bool isMuted = 2;
+}
+
+message GetMuteRequest {
+  string speakerId = 1;
+}
+
+message SpeakerMuteResponse {
+  bool isMuted = 1;
 }
 
 message GetZonesResponse {

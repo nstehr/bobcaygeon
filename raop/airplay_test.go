@@ -6,17 +6,19 @@ import (
 
 	"github.com/nstehr/bobcaygeon/sdp"
 
-	"github.com/nstehr/bobcaygeon/rtsp"
 	"github.com/nstehr/bobcaygeon/player"
+	"github.com/nstehr/bobcaygeon/rtsp"
 )
 
 type FakePlayer struct{}
 
 func (FakePlayer) Play(session *rtsp.Session)                         {}
 func (FakePlayer) SetVolume(volume float64)                           {}
+func (FakePlayer) SetMute(isMuted bool)                               {}
+func (FakePlayer) GetIsMuted() bool                                   { return false }
 func (FakePlayer) SetTrack(album string, artist string, title string) {}
 func (FakePlayer) SetAlbumArt(artwork []byte)                         {}
-func (FakePlayer) GetTrack() player.Track                                    { return player.Track{} }
+func (FakePlayer) GetTrack() player.Track                             { return player.Track{} }
 
 func TestHandleOptions(t *testing.T) {
 	req := rtsp.NewRequest()

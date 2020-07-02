@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/memberlist"
@@ -13,6 +14,7 @@ import (
 	"github.com/nstehr/bobcaygeon/cluster"
 	"github.com/nstehr/bobcaygeon/cmd/mgmt/api"
 	"github.com/nstehr/bobcaygeon/cmd/mgmt/service"
+	"github.com/nstehr/bobcaygeon/rtsp"
 	"google.golang.org/grpc"
 )
 
@@ -758,4 +760,72 @@ func (dms *DistributedMgmtService) HandleMusicNodeLeave(node *memberlist.Node) {
 	}
 	updateZone.Leader = newLeader.Name
 	dms.store.SaveZoneConfig(updateZone)
+}
+
+// SetMuteForSpeaker will mute or unmute the given speaker
+func (dms *DistributedMgmtService) SetMuteForSpeaker(speakerID string, isMuted bool) error {
+	if !dms.store.AmLeader() {
+		client, err := dms.getLeaderClient(dms.store.GetLeader())
+		if err != nil {
+			return err
+		}
+		resp, err := client.SetMuteForSpeaker(context.Background(), &api.SetMuteRequest{SpeakerId: speakerID, IsMuted: isMuted})
+		if err != nil {
+			return err
+		}
+		if resp.ResponseCode != 200 {
+			return fmt.Errorf(resp.Message)
+		}
+		return nil
+	}
+	filter := func(node *memberlist.Node) bool {
+		meta := cluster.DecodeNodeMeta(node.Meta)
+		return meta.NodeType == cluster.Music && speakerID == node.Name
+	}
+
+	speakers := cluster.FilterMembersByFn(filter, dms.nodes)
+	if len(speakers) != 1 {
+		return fmt.Errorf("Could not find speaker with id: %s", speakerID)
+	}
+	speaker := speakers[0]
+	meta := cluster.DecodeNodeMeta(speaker.Meta)
+
+	// volume is a 'pure' RTSP/RAOP function, so we will use the RTSP client to play with mute
+	client, err := rtsp.NewClient(speaker.Addr.String(), meta.RtspPort)
+	if err != nil {
+		return err
+	}
+	req := rtsp.NewRequest()
+	req.Method = rtsp.Set_Parameter
+	sessionID := strconv.FormatInt(time.Now().Unix(), 10)
+	localAddress := client.LocalAddress()
+	req.RequestURI = fmt.Sprintf("rtsp://%s/%s", localAddress, sessionID)
+	req.Headers["Content-Type"] = "text/parameters"
+	var body = ""
+	if isMuted {
+		req.Headers["X-BCG-Muted"] = "muted"
+		//airplay servers understands mute as -144
+		body = fmt.Sprintf("volume: %f", -144.0)
+	} else {
+		req.Headers["X-BCG-Muted"] = "unmuted"
+		body = fmt.Sprintf("volume: %f", 0.0)
+	}
+	req.Body = []byte(body)
+	_, err = client.Send(req)
+	return err
+}
+
+// GetIsMutedForSpeaker returns if the given speaker is hard muted
+func (dms *DistributedMgmtService) GetIsMutedForSpeaker(speakerID string) (bool, error) {
+	client, err := dms.getSpeakerClient(speakerID)
+	if err != nil {
+		return false, err
+	}
+	defer client.Close()
+	mutedResp, err := client.GetMuted(context.Background(), &speakerAPI.GetMutedRequest{})
+	if err != nil {
+		return false, err
+	}
+	return mutedResp.GetIsMuted(), nil
+
 }

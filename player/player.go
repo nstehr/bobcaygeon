@@ -14,6 +14,8 @@ import (
 type Player interface {
 	Play(session *rtsp.Session)
 	SetVolume(volume float64)
+	SetMute(isMuted bool)
+	GetIsMuted() bool
 	SetTrack(album string, artist string, title string)
 	SetAlbumArt(artwork []byte)
 	GetTrack() Track
@@ -59,6 +61,16 @@ func (lp *LocalPlayer) SetTrack(album string, artist string, title string) {
 // SetAlbumArt sets the album art for the player
 func (lp *LocalPlayer) SetAlbumArt(artwork []byte) {
 	// no op for now
+}
+
+// SetMute will mute or unmute the player
+func (lp *LocalPlayer) SetMute(isMuted bool) {
+	// no op for now
+}
+
+// GetIsMuted returns muted state
+func (lp *LocalPlayer) GetIsMuted() bool {
+	return false
 }
 
 // GetTrack returns the track

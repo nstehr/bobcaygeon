@@ -21,6 +21,7 @@ type Player struct {
 	volLock      sync.RWMutex
 	trackLock    sync.RWMutex
 	volume       float64
+	isMuted      bool
 	sessions     *sessionMap
 	ap           *oto.Player
 	currentTrack player.Track
@@ -89,7 +90,7 @@ func NewPlayer() (*Player, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Player{sessions: newSessionMap(), volume: 1, ap: ap}, nil
+	return &Player{sessions: newSessionMap(), volume: 1, ap: ap, isMuted: false}, nil
 }
 
 // NotifyJoin is invoked when a node is detected to have joined.
@@ -170,6 +171,20 @@ func (p *Player) SetVolume(volume float64) {
 	}()
 }
 
+// SetMute will mute or unmute the player, mute overrides any volume settings
+func (p *Player) SetMute(isMuted bool) {
+	p.volLock.Lock()
+	defer p.volLock.Unlock()
+	p.isMuted = isMuted
+}
+
+// GetIsMuted returns muted state
+func (p *Player) GetIsMuted() bool {
+	p.volLock.Lock()
+	defer p.volLock.Unlock()
+	return p.isMuted
+}
+
 // Play will play the packets received on the specified session
 // and forward the packets on
 func (p *Player) Play(session *rtsp.Session) {
@@ -179,6 +194,7 @@ func (p *Player) Play(session *rtsp.Session) {
 		for d := range session.DataChan {
 			p.volLock.RLock()
 			vol := p.volume
+			isMuted := p.isMuted
 			p.volLock.RUnlock()
 			func() {
 				defer func() {
@@ -186,13 +202,14 @@ func (p *Player) Play(session *rtsp.Session) {
 						fmt.Println(err)
 					}
 				}()
-				// will play the audio
-				decoded, err := dc(d)
-				if err != nil {
-					log.Println("Problem decoding packet")
+				// will play the audio, if player isn't muted
+				if !isMuted {
+					decoded, err := dc(d)
+					if err != nil {
+						log.Println("Problem decoding packet")
+					}
+					p.ap.Write(player.AdjustAudio(decoded, vol))
 				}
-				p.ap.Write(player.AdjustAudio(decoded, vol))
-
 				// will forward the audio to other clients
 				go func(pkt []byte) {
 					sessions := p.sessions.getSessions()

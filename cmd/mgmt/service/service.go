@@ -12,6 +12,8 @@ type MgmtService interface {
 	GetZones() []*Zone
 	GetTrackForZone(zoneID string) (*Track, error)
 	GetTrackForSpeaker(speakerID string) (*Track, error)
+	SetMuteForSpeaker(speakerID string, isMuted bool) error
+	GetIsMutedForSpeaker(speakerID string) (bool, error)
 }
 
 // Speaker speaker instance

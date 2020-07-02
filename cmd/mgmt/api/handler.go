@@ -125,3 +125,21 @@ func (s *Server) GetCurrentTrack(ctx context.Context, in *GetTrackRequest) (*Tra
 		return &Track{Artist: t.Artist, Album: t.Album, Title: t.Title, Artwork: t.Artwork}, nil
 	}
 }
+
+// SetMuteForSpeaker will mute or unmute the given speaker
+func (s *Server) SetMuteForSpeaker(ctx context.Context, in *SetMuteRequest) (*UpdateResponse, error) {
+	if in.SpeakerId == "" {
+		return &UpdateResponse{ResponseCode: 400, Message: "No speaker id specified"}, nil
+	}
+	err := s.service.SetMuteForSpeaker(in.SpeakerId, in.IsMuted)
+	if err != nil {
+		return &UpdateResponse{ResponseCode: 500, Message: err.Error()}, nil
+	}
+	return &UpdateResponse{ResponseCode: 200}, nil
+}
+
+// GetMuteForSpeaker returns speaker mute state
+func (s *Server) GetMuteForSpeaker(ctx context.Context, in *GetMuteRequest) (*SpeakerMuteResponse, error) {
+	muted, _ := s.service.GetIsMutedForSpeaker(in.SpeakerId)
+	return &SpeakerMuteResponse{IsMuted: muted}, nil
+}

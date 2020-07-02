@@ -323,8 +323,19 @@ func (a *AirplayServer) handlSetParameter(req *rtsp.Request, resp *rtsp.Response
 				resp.Status = rtsp.BadRequest
 				return
 			}
+			if val, ok := req.Headers["X-BCG-Muted"]; ok {
+				if val == "muted" {
+					a.player.SetMute(true)
+					// muting is enough, we don't need to bother
+					// going on to set the actual volume
+					resp.Status = rtsp.Ok
+					return
+				}
+				a.player.SetMute(false)
+			}
 			vol = normalizeVolume(vol)
 			a.player.SetVolume(vol)
+
 		}
 	}
 	resp.Status = rtsp.Ok

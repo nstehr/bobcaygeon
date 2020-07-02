@@ -94,3 +94,9 @@ func (s *Server) GetCurrentTrack(ctx context.Context, in *GetTrackRequest) (*Tra
 	track := s.forwardingPlayer.GetTrack()
 	return &Track{Artist: track.Artist, Album: track.Album, Title: track.Title, Artwork: track.Artwork}, nil
 }
+
+// GetMuted returns if the speaker is hard muted
+func (s *Server) GetMuted(ctx context.Context, in *GetMutedRequest) (*SpeakerMuteResponse, error) {
+	muted := s.forwardingPlayer.GetIsMuted()
+	return &SpeakerMuteResponse{IsMuted: muted}, nil
+}
