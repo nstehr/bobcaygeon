@@ -1,4 +1,4 @@
-import { GetSpeakersRequest, GetZonesRequest, GetTrackRequest, SetSpeakerDisplayNameRequest } from './management_pb.js';
+import { GetSpeakersRequest, GetZonesRequest, GetTrackRequest, SetSpeakerDisplayNameRequest, GetMuteRequest, SetMuteRequest } from './management_pb.js';
 import { BobcaygeonManagementPromiseClient } from './management_grpc_web_pb.js';
 
 const mgmtService = new BobcaygeonManagementPromiseClient(`http://${window.location.hostname}:9211`);
@@ -32,4 +32,20 @@ export const changeDisplayNameForSpeaker = async (speakerId, displayName, update
     const changeRequest = await mgmtService.setDisplayNameForSpeaker(request);
     return changeRequest;
 
+}
+
+export const getMuteForSpeaker = async (speakerId) => {
+    const request = new GetMuteRequest();
+    request.setSpeakerid(speakerId);
+    const isMutedResp = await mgmtService.getMuteForSpeaker(request);
+    console.log(isMutedResp);
+    return isMutedResp.getIsmuted();
+}
+
+export const setMuteForSpeaker = async (speakerId, mute) => {
+    const request = new SetMuteRequest();
+    request.setSpeakerid(speakerId);
+    request.setIsmuted(mute);
+    const isMuted = await mgmtService.setMuteForSpeaker(request);
+    return isMuted;
 }

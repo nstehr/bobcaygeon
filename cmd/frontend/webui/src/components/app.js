@@ -5,6 +5,7 @@ import { getSpeakers } from '../api/service';
 import SpeakerZoneSelect from './speakerZoneSelect';
 import NowPlaying from './nowPlaying';
 import SpeakerDetails from './speakerDetails';
+import SpeakerControl from './speakerControl';
 
 function App() {
     const [speakers, setSpeakers] = useState([]);
@@ -30,6 +31,7 @@ function App() {
         <div>
             <SpeakerZoneSelect speakers={speakers} speakerSelected={speakerSelected} />
             <NowPlaying speakerId={selectedSpeaker ? selectedSpeaker.getId() : undefined}></NowPlaying>
+            <SpeakerControl speakerId={selectedSpeaker ? selectedSpeaker.getId() : undefined}></SpeakerControl>
             <SpeakerDetails selectedSpeaker={selectedSpeaker} speakerUpdated={speakerUpdated}></SpeakerDetails>
         </div>
     );
