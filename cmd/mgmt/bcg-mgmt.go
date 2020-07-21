@@ -119,7 +119,7 @@ func main() {
 	nodeName := config.Node.Name
 	log.Printf("Starting management API node: %s\n", nodeName)
 	metaData := &cluster.NodeMeta{NodeType: cluster.Mgmt, APIPort: config.Node.APIPort, RaftPort: config.Mgmt.RaftPort}
-	c := memberlist.DefaultLocalConfig()
+	c := memberlist.DefaultLANConfig()
 	c.Name = nodeName
 	c.BindPort = config.Node.ClusterPort
 	c.AdvertisePort = config.Node.ClusterPort

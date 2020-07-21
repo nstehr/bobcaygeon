@@ -105,7 +105,7 @@ func main() {
 
 	log.Printf("Starting frontend node: %s\n", nodeName)
 	metaData := &cluster.NodeMeta{NodeType: cluster.Frontend, APIPort: config.Node.APIPort}
-	c := memberlist.DefaultLocalConfig()
+	c := memberlist.DefaultLANConfig()
 	c.Name = nodeName
 	c.BindPort = config.Node.ClusterPort
 	c.AdvertisePort = config.Node.ClusterPort
