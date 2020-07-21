@@ -1,5 +1,6 @@
 #!/bin/bash
 
+wget https://archive.raspbian.org/raspbian.public.key -O - | sudo apt-key add -
 sudo apt-get update
 sudo apt-get install libasound2-dev
 
