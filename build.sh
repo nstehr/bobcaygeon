@@ -57,3 +57,5 @@ mkdir artifacts
 cp bcg* artifacts
 cp bcg-* artifacts
 
+chmod a+x artifacts/*
+
