@@ -42,15 +42,18 @@ go build -o bcg-mgmt-$TRAVIS_OS_NAME-$BCG_VERSION cmd/mgmt/bcg-mgmt.go
 #TODO: refactor linux build overall
 if [[ $TRAVIS_OS_NAME == 'linux' ]]
 then
+   echo "copying linux binaries for bcg and mgmt"
+   mv bcg-$TRAVIS_OS_NAME-$BCG_VERSION bcg-amd64-linux-$BCG_VERSION
+   mv bcg-mgmt-$TRAVIS_OS_NAME-$BCG_VERSION bcg-mgmt-amd64-linux-$BCG_VERSION
    echo "building frontend binary"
    ./build-frontend-docker.sh
-   mv bcg-frontend-linux bcg-frontend-linux-$BCG_VERSION
-   mv bcg-frontend-arm bcg-frontend-arm-$BCG_VERSION
+   mv bcg-frontend-amd64-linux bcg-frontend-amd64-linux-$BCG_VERSION
+   mv bcg-frontend-arm-linux bcg-frontend-arm-linux-$BCG_VERSION
    mv bcg-frontend-osx bcg-frontend-osx-$BCG_VERSION
    echo "executing docker based ARM build"
    ./init-arm-build.sh
-   mv bcg-arm bcg-arm-$BCG_VERSION
-   mv bcg-mgmt-arm bcg-mgmt-arm-$BCG_VERSION
+   mv bcg-arm bcg-arm-linux-$BCG_VERSION
+   mv bcg-mgmt-arm bcg-mgmt-arm-linux-$BCG_VERSION
 fi  
 
 mkdir artifacts
