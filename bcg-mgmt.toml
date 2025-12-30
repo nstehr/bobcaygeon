@@ -5,5 +5,5 @@
   name = "aware-guinea"
 
 [mgmt]
-  raft-port = 5432
+  raft-port = 6432
   storage-dir = "./mgmt"

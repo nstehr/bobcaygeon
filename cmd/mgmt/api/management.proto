@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "api";
+option go_package = "./;api";
 
 service BobcaygeonManagement {
   rpc GetSpeakers (GetSpeakersRequest) returns (GetSpeakersResponse) {}

@@ -41,7 +41,7 @@ type entry struct {
 
 // DistributedStore is a raft backed store based on: https://github.com/otoolep/hraftd/blob/master/store/store.go
 type DistributedStore struct {
-	raftPort int
+	raftAddr string
 	raftDir  string
 	localID  string
 	mu       sync.Mutex
@@ -135,16 +135,18 @@ func (ds *DistributedStore) DeleteZoneConfig(zoneID string) error {
 }
 
 // NewDistributedStore initializes the store
-func NewDistributedStore(localID string, raftPort int, raftDir string) *DistributedStore {
-	return &DistributedStore{localID: localID,
-		raftPort: raftPort,
+func NewDistributedStore(localID string, raftAddr string, raftDir string) *DistributedStore {
+	return &DistributedStore{
+		localID:  localID,
+		raftAddr: raftAddr,
 		raftDir:  raftDir,
-		m:        make(map[string]entry)}
+		m:        make(map[string]entry),
+	}
 }
 
 // Open will open the database for usage
 func (ds *DistributedStore) Open(bootstrap bool) error {
-	r, err := initRaft(ds.localID, ds.raftPort, ds.raftDir, ds, bootstrap)
+	r, err := initRaft(ds.localID, ds.raftAddr, ds.raftDir, ds, bootstrap)
 	if err != nil {
 		return err
 	}
@@ -260,11 +262,10 @@ func (ds *DistributedStore) Restore(rc io.ReadCloser) error {
 	return nil
 }
 
-func initRaft(localID string, raftPort int, raftDir string, s *DistributedStore, bootstrap bool) (*raft.Raft, error) {
+func initRaft(localID string, raftAddr string, raftDir string, s *DistributedStore, bootstrap bool) (*raft.Raft, error) {
 	// Setup Raft configuration.
 	config := raft.DefaultConfig()
 	config.LocalID = raft.ServerID(localID)
-	raftAddr := fmt.Sprintf(":%d", raftPort)
 	// Setup Raft communication.
 	addr, err := net.ResolveTCPAddr("tcp", raftAddr)
 	if err != nil {
@@ -334,7 +335,6 @@ func (f *fsmSnapshot) Persist(sink raft.SnapshotSink) error {
 		// Close the sink.
 		return sink.Close()
 	}()
-
 	if err != nil {
 		sink.Cancel()
 	}

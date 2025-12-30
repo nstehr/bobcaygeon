@@ -9,6 +9,7 @@ import (
 // Server represents the gRPC server
 type Server struct {
 	service service.MgmtService
+	UnimplementedBobcaygeonManagementServer
 }
 
 // NewServer instantiates a new RPC server

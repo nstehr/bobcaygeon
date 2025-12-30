@@ -15,6 +15,7 @@ type Server struct {
 	airplayServer    *raop.AirplayServer
 	forwardingPlayer *forwarding.Player
 	nodes            *memberlist.Memberlist
+	UnimplementedAirPlayManagementServer
 }
 
 // NewServer instantiates a new RPC server
