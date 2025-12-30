@@ -1,0 +1,54 @@
+package components
+
+import (
+	api "github.com/nstehr/bobcaygeon/cmd/mgmt/api"
+)
+
+templ SpeakersList(speakers []*api.Speaker) {
+	<div id="speakers-list" class="speakers-container">
+		<h2>Speakers</h2>
+		<div class="speaker-grid">
+			for _, speaker := range speakers {
+				@SpeakerItem(speaker)
+			}
+		</div>
+	</div>
+	<div id="speaker-details"></div>
+	<div id="now-playing"></div>
+	<div id="speaker-controls"></div>
+}
+
+templ SpeakerItem(speaker *api.Speaker) {
+	<div 
+		class="speaker-item"
+		data-speaker-id={ speaker.Id }
+		hx-get={ "/api/speaker/" + speaker.Id + "/details" }
+		hx-target="#speaker-details"
+		hx-trigger="click"
+	>
+		<h3>{ speaker.DisplayName }</h3>
+		<p class="speaker-id">{ speaker.Id }</p>
+	</div>
+}
+
+templ ZonesList(zones []*api.Zone) {
+	<div id="zones-list" class="zones-container">
+		<h2>Zones</h2>
+		<div class="zone-grid">
+			for _, zone := range zones {
+				@ZoneItem(zone)
+			}
+		</div>
+	</div>
+}
+
+templ ZoneItem(zone *api.Zone) {
+	<div class="zone-item" data-zone-id={ zone.Id }>
+		<h3>{ zone.DisplayName }</h3>
+		<div class="zone-speakers">
+			for _, speaker := range zone.Speakers {
+				<span class="zone-speaker">{ speaker.DisplayName }</span>
+			}
+		</div>
+	</div>
+}

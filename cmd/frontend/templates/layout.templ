@@ -1,0 +1,30 @@
+package templates
+
+templ Layout(title string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title } - Bobcaygeon</title>
+			<script src="/static/htmx.min.js"></script>
+			<link rel="stylesheet" href="/static/styles.css"/>
+		</head>
+		<body>
+			<header>
+				<h1>Bobcaygeon 🎸</h1>
+			</header>
+			<main>
+				{ children... }
+			</main>
+		</body>
+	</html>
+}
+
+templ Index() {
+	@Layout("Home") {
+		<div id="speakers-container" hx-get="/api/speakers" hx-trigger="load">
+			Loading speakers...
+		</div>
+	}
+}

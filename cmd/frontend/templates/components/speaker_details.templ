@@ -1,0 +1,71 @@
+package components
+
+import (
+	api "github.com/nstehr/bobcaygeon/cmd/mgmt/api"
+	"fmt"
+)
+
+templ SpeakerDetails(speaker *api.Speaker) {
+	<div class="speaker-details-panel">
+		<h3>Speaker Details</h3>
+		<form 
+			hx-put={ fmt.Sprintf("/api/speaker/%s/name", speaker.Id) }
+			hx-trigger="submit"
+			hx-swap="none"
+		>
+			<div class="form-group">
+				<label for="display-name">Display Name:</label>
+				<input 
+					type="text"
+					id="display-name"
+					name="displayName"
+					value={ speaker.DisplayName }
+					hx-trigger="change delay:500ms"
+					hx-put={ fmt.Sprintf("/api/speaker/%s/name", speaker.Id) }
+				/>
+			</div>
+			<div class="form-group">
+				<label>
+					<input type="checkbox" name="updateBroadcast" value="true"/>
+					Update broadcast name
+				</label>
+			</div>
+		</form>
+		
+		<div 
+			id="speaker-controls"
+			hx-get={ fmt.Sprintf("/api/speaker/%s/mute", speaker.Id) }
+			hx-trigger="load"
+		>
+			Loading controls...
+		</div>
+		
+		<div 
+			id="now-playing"
+			hx-get={ fmt.Sprintf("/api/now-playing/%s", speaker.Id) }
+			hx-trigger="load, every 2s"
+		>
+			Loading...
+		</div>
+	</div>
+}
+
+templ MuteButton(speakerID string, isMuted bool) {
+	if isMuted {
+		<button 
+			class="mute-button btn-muted"
+			hx-post={ fmt.Sprintf("/api/speaker/%s/mute", speakerID) }
+			hx-swap="outerHTML"
+		>
+			Unmute
+		</button>
+	} else {
+		<button 
+			class="mute-button btn-unmuted"
+			hx-post={ fmt.Sprintf("/api/speaker/%s/mute", speakerID) }
+			hx-swap="outerHTML"
+		>
+			Mute
+		</button>
+	}
+}

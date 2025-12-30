@@ -1,0 +1,34 @@
+package components
+
+import (
+	api "github.com/nstehr/bobcaygeon/cmd/mgmt/api"
+	"encoding/base64"
+)
+
+templ NowPlaying(track *api.Track) {
+	if track == nil || (track.Artist == "" && track.Title == "") {
+		<div class="now-playing-empty">
+			<p>Nothing playing</p>
+		</div>
+	} else {
+		<div class="now-playing">
+			<h3>Now Playing</h3>
+			if len(track.Artwork) > 0 {
+				@AlbumArt(track.Artwork)
+			}
+			<div class="track-info">
+				<div class="track-title">{ track.Title }</div>
+				<div class="track-artist">{ track.Artist }</div>
+				<div class="track-album">{ track.Album }</div>
+			</div>
+		</div>
+	}
+}
+
+templ AlbumArt(artwork []byte) {
+	<img 
+		src={ "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(artwork) }
+		alt="Album artwork"
+		class="album-art"
+	/>
+}
