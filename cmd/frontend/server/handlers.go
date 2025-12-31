@@ -14,7 +14,24 @@ import (
 // handleIndex serves the main page
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	templates.Index().Render(r.Context(), w)
+
+	// Fetch speakers server-side for initial render
+	mgmtClient := s.getMgmtClient()
+	if mgmtClient == nil {
+		// No management client available, show empty list
+		templates.Index(nil).Render(r.Context(), w)
+		return
+	}
+
+	speakers, err := mgmtClient.GetSpeakers(r.Context())
+	if err != nil {
+		log.Printf("Error getting speakers for index: %v", err)
+		// Show empty list on error
+		templates.Index(nil).Render(r.Context(), w)
+		return
+	}
+
+	templates.Index(speakers.Speakers).Render(r.Context(), w)
 }
 
 // handleHealth returns the health status
@@ -299,10 +316,11 @@ func (s *Server) handleNowPlaying(w http.ResponseWriter, r *http.Request) {
 
 	track, err := mgmtClient.GetCurrentTrack(r.Context(), speakerID)
 	if err != nil {
-		log.Printf("Error getting current track: %v", err)
+		log.Printf("Error getting current track for speaker %s: %v", speakerID, err)
 		// Return empty now playing for HTMX
 		if r.Header.Get("HX-Request") == "true" {
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 			components.NowPlaying(nil).Render(r.Context(), w)
 			return
 		}
@@ -310,9 +328,15 @@ func (s *Server) handleNowPlaying(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("Got track for speaker %s: %s - %s (artwork size: %d bytes)",
+		speakerID, track.Artist, track.Title, len(track.Artwork))
+
 	// For HTMX requests, return HTML fragment
 	if r.Header.Get("HX-Request") == "true" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
 		components.NowPlaying(track).Render(r.Context(), w)
 		return
 	}

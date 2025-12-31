@@ -3,23 +3,42 @@ package components
 import (
 	api "github.com/nstehr/bobcaygeon/cmd/mgmt/api"
 	"encoding/base64"
+	"time"
+	"fmt"
 )
 
 templ NowPlaying(track *api.Track) {
 	if track == nil || (track.Artist == "" && track.Title == "") {
-		<div class="now-playing-empty">
-			<p>Nothing playing</p>
+		<div id="now-playing" class="mb-12 bg-dark-surface rounded-3xl overflow-hidden border border-dark-border">
+			<div class="flex flex-col items-center justify-center py-24 px-4 text-center">
+			<div class="w-64 h-64 rounded-2xl bg-dark-surface flex items-center justify-center mb-8 shadow-2xl">
+				<svg class="w-24 h-24 text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
+				</svg>
+			</div>
+			<p class="text-2xl text-dark-text-secondary font-light">Select a speaker to begin</p>
+			</div>
 		</div>
 	} else {
-		<div class="now-playing">
-			<h3>Now Playing</h3>
+		<div id="now-playing" class="mb-12 bg-dark-surface rounded-3xl overflow-hidden border border-dark-border">
+			<div class="flex flex-col lg:flex-row items-center lg:items-start gap-8 py-12 px-4">
 			if len(track.Artwork) > 0 {
 				@AlbumArt(track.Artwork)
+			} else {
+				<div class="w-80 h-80 rounded-2xl bg-dark-surface flex items-center justify-center shadow-2xl flex-shrink-0">
+					<svg class="w-32 h-32 text-dark-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
+					</svg>
+				</div>
 			}
-			<div class="track-info">
-				<div class="track-title">{ track.Title }</div>
-				<div class="track-artist">{ track.Artist }</div>
-				<div class="track-album">{ track.Album }</div>
+			<div class="flex-1 flex flex-col justify-center lg:pl-8 text-center lg:text-left">
+				<p class="text-sm font-medium text-accent-primary mb-4 tracking-wide uppercase">Now Playing</p>
+				<h2 class="text-5xl lg:text-6xl font-bold mb-4 leading-tight">{ track.Title }</h2>
+				<p class="text-3xl lg:text-4xl text-dark-text-secondary font-light mb-3">{ track.Artist }</p>
+				if track.Album != "" {
+					<p class="text-xl text-dark-text-muted font-light">{ track.Album }</p>
+				}
+			</div>
 			</div>
 		</div>
 	}
@@ -27,8 +46,9 @@ templ NowPlaying(track *api.Track) {
 
 templ AlbumArt(artwork []byte) {
 	<img 
+		id={ fmt.Sprintf("artwork-%d", time.Now().UnixNano()) }
 		src={ "data:image/jpeg;base64," + base64.StdEncoding.EncodeToString(artwork) }
 		alt="Album artwork"
-		class="album-art"
+		class="w-80 h-80 rounded-2xl shadow-2xl object-cover flex-shrink-0"
 	/>
 }

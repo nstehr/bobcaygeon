@@ -8,6 +8,11 @@ package templates
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
+import (
+	"github.com/nstehr/bobcaygeon/cmd/frontend/templates/components"
+	api "github.com/nstehr/bobcaygeon/cmd/mgmt/api"
+)
+
 func Layout(title string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -29,20 +34,20 @@ func Layout(title string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\" class=\"dark\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/layout.templ`, Line: 9, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `templates/layout.templ`, Line: 14, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " - Bobcaygeon</title><script src=\"/static/htmx.min.js\"></script><link rel=\"stylesheet\" href=\"/static/styles.css\"></head><body><header><h1>Bobcaygeon 🎸</h1></header><main>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, " - Bobcaygeon</title><script src=\"https://cdn.tailwindcss.com\"></script><script src=\"/static/htmx.min.js\"></script><script>\n\t\t\t\ttailwind.config = {\n\t\t\t\t\tdarkMode: 'class',\n\t\t\t\t\ttheme: {\n\t\t\t\t\t\textend: {\n\t\t\t\t\t\t\tcolors: {\n\t\t\t\t\t\t\t\tdark: {\n\t\t\t\t\t\t\t\t\tbg: '#0a0a0a',\n\t\t\t\t\t\t\t\t\tsurface: '#141414',\n\t\t\t\t\t\t\t\t\televated: '#1e1e1e',\n\t\t\t\t\t\t\t\t\tborder: '#2a2a2a',\n\t\t\t\t\t\t\t\t\ttext: {\n\t\t\t\t\t\t\t\t\t\tprimary: '#ffffff',\n\t\t\t\t\t\t\t\t\t\tsecondary: '#a0a0a0',\n\t\t\t\t\t\t\t\t\t\tmuted: '#666666',\n\t\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t\t},\n\t\t\t\t\t\t\t\taccent: {\n\t\t\t\t\t\t\t\t\tprimary: '#22c55e',\n\t\t\t\t\t\t\t\t\thover: '#16a34a',\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t</script><style type=\"text/tailwindcss\">\n\t\t\t\t@layer base {\n\t\t\t\t\tbody {\n\t\t\t\t\t\t@apply bg-dark-bg text-dark-text-primary antialiased;\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t</style></head><body class=\"min-h-screen\"><div class=\"max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6\"><header class=\"mb-8\"><h1 class=\"text-3xl font-light tracking-wide text-center\"><span class=\"text-accent-primary\">Bobcaygeon</span></h1></header><main>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -50,7 +55,7 @@ func Layout(title string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</main></body></html>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</main></div></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -58,7 +63,7 @@ func Layout(title string) templ.Component {
 	})
 }
 
-func Index() templ.Component {
+func Index(speakers []*api.Speaker) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -91,7 +96,7 @@ func Index() templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div id=\"speakers-container\" hx-get=\"/api/speakers\" hx-trigger=\"load\">Loading speakers...</div>")
+			templ_7745c5c3_Err = components.SpeakersList(speakers).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
