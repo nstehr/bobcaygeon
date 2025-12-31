@@ -206,13 +206,17 @@ func (s *Server) handleNameUpdate(w http.ResponseWriter, r *http.Request) {
 
 	speakerID := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/speaker/"), "/")[0]
 
-	var request struct {
-		DisplayName     string `json:"displayName"`
-		UpdateBroadcast bool   `json:"updateBroadcast"`
+	// Parse form data
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form data", http.StatusBadRequest)
+		return
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	displayName := r.FormValue("displayName")
+	updateBroadcast := r.FormValue("updateBroadcast") == "true"
+
+	if displayName == "" {
+		http.Error(w, "Display name is required", http.StatusBadRequest)
 		return
 	}
 
@@ -222,10 +226,17 @@ func (s *Server) handleNameUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response, err := mgmtClient.SetSpeakerDisplayName(r.Context(), speakerID, request.DisplayName, request.UpdateBroadcast)
+	response, err := mgmtClient.SetSpeakerDisplayName(r.Context(), speakerID, displayName, updateBroadcast)
 	if err != nil {
 		log.Printf("Error updating speaker name: %v", err)
 		http.Error(w, "Failed to update speaker name", http.StatusInternalServerError)
+		return
+	}
+
+	// For HTMX requests, return success message or redirect
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(`<div class="text-sm text-green-400">Display name updated successfully!</div>`))
 		return
 	}
 

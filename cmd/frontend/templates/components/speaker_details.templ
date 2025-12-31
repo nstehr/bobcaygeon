@@ -28,10 +28,13 @@ templ SpeakerDetails(speaker *api.Speaker) {
 			</div>
 		</div>
 		
+		<div id="update-status" class="mb-4"></div>
+		
 		<form 
 			hx-put={ fmt.Sprintf("/api/speaker/%s/name", speaker.Id) }
 			hx-trigger="submit"
-			hx-swap="none"
+			hx-target="#update-status"
+			hx-swap="innerHTML"
 			class="space-y-4"
 		>
 			<div>
@@ -44,22 +47,37 @@ templ SpeakerDetails(speaker *api.Speaker) {
 					name="displayName"
 					value={ speaker.DisplayName }
 					class="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2.5 text-dark-text-primary placeholder-dark-text-muted focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-colors"
-					hx-trigger="change delay:500ms"
-					hx-put={ fmt.Sprintf("/api/speaker/%s/name", speaker.Id) }
+					required
 				/>
 			</div>
-			<div class="flex items-center gap-2">
-				<input 
-					type="checkbox" 
-					id="updateBroadcast"
-					name="updateBroadcast" 
-					value="true"
-					class="w-4 h-4 rounded border-dark-border bg-dark-bg text-accent-primary focus:ring-2 focus:ring-accent-primary/50"
-				/>
-				<label for="updateBroadcast" class="text-sm text-dark-text-secondary">
-					Update broadcast name
-				</label>
+			<div class="bg-dark-bg border border-dark-border rounded-lg p-4">
+				<div class="flex items-start gap-3">
+					<input 
+						type="checkbox" 
+						id="updateBroadcast"
+						name="updateBroadcast" 
+						value="true"
+						class="mt-1 w-4 h-4 rounded border-dark-border bg-dark-elevated text-accent-primary focus:ring-2 focus:ring-accent-primary/50"
+					/>
+					<div class="flex-1">
+						<label for="updateBroadcast" class="block text-sm font-medium text-dark-text-primary mb-1 cursor-pointer">
+							Update AirPlay broadcast name
+						</label>
+						<p class="text-xs text-dark-text-muted">
+							Also update the name shown to AirPlay clients (requires speaker restart)
+						</p>
+					</div>
+				</div>
 			</div>
+			<button 
+				type="submit"
+				class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-primary hover:bg-accent-primary/90 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-accent-primary/50 font-medium"
+			>
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+				</svg>
+				<span>Update Display Name</span>
+			</button>
 		</form>
 	</div>
 }
