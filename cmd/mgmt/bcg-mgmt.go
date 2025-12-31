@@ -21,9 +21,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var (
-	configPath = flag.String("config", "bcg-mgmt.toml", "Path to the config file for the node")
-)
+var configPath = flag.String("config", "bcg-mgmt.toml", "Path to the config file for the node")
 
 type nodeConfig struct {
 	APIPort     int    `toml:"api-port"`
@@ -66,7 +64,6 @@ func (m *memberHandler) NotifyJoin(node *memberlist.Node) {
 	if meta.NodeType == cluster.Music {
 		go m.service.HandleMusicNodeJoin(node)
 	}
-
 }
 
 // NotifyLeave is invoked when a node is detected to have left.
@@ -75,12 +72,10 @@ func (m *memberHandler) NotifyLeave(node *memberlist.Node) {
 	log.Println("Node Left" + node.Name)
 	meta := cluster.DecodeNodeMeta(node.Meta)
 	if meta.NodeType == cluster.Mgmt {
-
 	}
 	if meta.NodeType == cluster.Music {
 		go m.service.HandleMusicNodeLeave(node)
 	}
-
 }
 
 // NotifyUpdate is invoked when a node is detected to have
@@ -88,7 +83,6 @@ func (m *memberHandler) NotifyLeave(node *memberlist.Node) {
 // must not be modified.
 func (*memberHandler) NotifyUpdate(node *memberlist.Node) {
 	log.Println("Node updated" + node.Name)
-
 }
 
 func main() {
@@ -143,8 +137,12 @@ func main() {
 		log.Println("Error starting zeroconf service", err)
 	}
 	defer server.Shutdown()
-
-	store := initDistributedStore(list, config.Node.Name, config.Mgmt.RaftPort, config.Mgmt.StorageDir)
+	name, err := os.Hostname()
+	if err != nil {
+		fmt.Printf("Oops: %v\n", err)
+		return
+	}
+	store := initDistributedStore(list, config.Node.Name, fmt.Sprintf("%s:%d", name, config.Mgmt.RaftPort), config.Mgmt.StorageDir)
 	service := raft.NewDistributedMgmtService(list, store)
 	// sets up the delegate to handle when members join or leave
 	c.Events = cluster.NewEventDelegate([]memberlist.EventDelegate{newMemberHandler(store, service)})
@@ -160,7 +158,6 @@ func main() {
 	}
 
 	log.Println("Goodbye.")
-
 }
 
 func startAPIServer(apiServerPort int, list *memberlist.Memberlist, service *raft.DistributedMgmtService) {
@@ -179,9 +176,9 @@ func startAPIServer(apiServerPort int, list *memberlist.Memberlist, service *raf
 	}
 }
 
-func initDistributedStore(list *memberlist.Memberlist, localID string, raftPort int, raftDir string) *raft.DistributedStore {
+func initDistributedStore(list *memberlist.Memberlist, localID string, raftAddr string, raftDir string) *raft.DistributedStore {
 	numMgmtNodes := len(cluster.FilterMembers(cluster.Mgmt, list))
-	store := raft.NewDistributedStore(localID, raftPort, raftDir)
+	store := raft.NewDistributedStore(localID, raftAddr, raftDir)
 	// if there is only 1 mgmt node, it means we are the only one, so we will bootstrap cluster
 	err := store.Open(numMgmtNodes == 1)
 	if err != nil {

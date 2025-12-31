@@ -1,0 +1,71 @@
+package components
+
+import (
+	api "github.com/nstehr/bobcaygeon/cmd/mgmt/api"
+)
+
+templ SpeakersList(speakers []*api.Speaker) {
+	<!-- Now Playing Section (Main Focus) -->
+	@NowPlaying(nil)
+	
+	<!-- Speakers Section (Secondary) -->
+	<div id="speakers-list" class="mb-8">
+		<h2 class="text-sm font-medium text-dark-text-secondary uppercase tracking-wider mb-4 px-1">Speakers</h2>
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+			for _, speaker := range speakers {
+				@SpeakerItem(speaker)
+			}
+		</div>
+	</div>
+	
+	<!-- Speaker Details Panel (Hidden until speaker selected) -->
+	<div id="speaker-details" class="mt-8"></div>
+	<div id="speaker-controls"></div>
+}
+
+templ SpeakerItem(speaker *api.Speaker) {
+	<button 
+		class="group bg-dark-surface hover:bg-dark-elevated border border-dark-border hover:border-accent-primary/30 rounded-xl p-4 transition-all duration-200 text-left w-full focus:outline-none focus:ring-2 focus:ring-accent-primary/50"
+		data-speaker-id={ speaker.Id }
+		hx-get={ "/api/speaker/" + speaker.Id + "/details" }
+		hx-target="#speaker-details"
+		hx-trigger="click"
+	>
+		<div class="flex items-center gap-3">
+			<div class="w-10 h-10 rounded-lg bg-dark-bg flex items-center justify-center flex-shrink-0">
+				<svg class="w-5 h-5 text-accent-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+				</svg>
+			</div>
+			<div class="flex-1 min-w-0">
+				<h3 class="text-sm font-medium text-dark-text-primary group-hover:text-accent-primary transition-colors truncate">{ speaker.DisplayName }</h3>
+				<p class="text-xs text-dark-text-muted truncate">{ speaker.Id }</p>
+			</div>
+			<svg class="w-5 h-5 text-dark-text-muted group-hover:text-accent-primary transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+			</svg>
+		</div>
+	</button>
+}
+
+templ ZonesList(zones []*api.Zone) {
+	<div id="zones-list" class="zones-container">
+		<h2>Zones</h2>
+		<div class="zone-grid">
+			for _, zone := range zones {
+				@ZoneItem(zone)
+			}
+		</div>
+	</div>
+}
+
+templ ZoneItem(zone *api.Zone) {
+	<div class="zone-item" data-zone-id={ zone.Id }>
+		<h3>{ zone.DisplayName }</h3>
+		<div class="zone-speakers">
+			for _, speaker := range zone.Speakers {
+				<span class="zone-speaker">{ speaker.DisplayName }</span>
+			}
+		</div>
+	</div>
+}

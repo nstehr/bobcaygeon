@@ -1,0 +1,6 @@
+
+[node]
+  api-port = 6778
+  cluster-port = 6677
+  web-server-port = 4445
+  name = "mature-collie"

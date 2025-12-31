@@ -1,0 +1,110 @@
+package components
+
+import (
+	api "github.com/nstehr/bobcaygeon/cmd/mgmt/api"
+	"fmt"
+)
+
+templ SpeakerDetails(speaker *api.Speaker) {
+	<!-- Update Now Playing when speaker is selected -->
+	<div 
+		hx-get={ fmt.Sprintf("/api/now-playing/%s", speaker.Id) }
+		hx-trigger="load, every 2s"
+		hx-target="#now-playing"
+		hx-swap="outerHTML"
+		class="hidden"
+	></div>
+	
+	<!-- Speaker Controls Panel -->
+	<div class="bg-dark-surface rounded-2xl border border-dark-border p-6">
+		<div class="flex items-center justify-between mb-6">
+			<h3 class="text-lg font-medium text-dark-text-primary">Speaker Settings</h3>
+			<div 
+				id="speaker-controls"
+				hx-get={ fmt.Sprintf("/api/speaker/%s/mute", speaker.Id) }
+				hx-trigger="load"
+			>
+				<!-- Mute button loads here -->
+			</div>
+		</div>
+		
+		<div id="update-status" class="mb-4"></div>
+		
+		<form 
+			hx-put={ fmt.Sprintf("/api/speaker/%s/name", speaker.Id) }
+			hx-trigger="submit"
+			hx-target="#update-status"
+			hx-swap="innerHTML"
+			class="space-y-4"
+		>
+			<div>
+				<label for="display-name" class="block text-sm font-medium text-dark-text-secondary mb-2">
+					Display Name
+				</label>
+				<input 
+					type="text"
+					id="display-name"
+					name="displayName"
+					value={ speaker.DisplayName }
+					class="w-full bg-dark-bg border border-dark-border rounded-lg px-4 py-2.5 text-dark-text-primary placeholder-dark-text-muted focus:outline-none focus:ring-2 focus:ring-accent-primary/50 focus:border-accent-primary transition-colors"
+					required
+				/>
+			</div>
+			<div class="bg-dark-bg border border-dark-border rounded-lg p-4">
+				<div class="flex items-start gap-3">
+					<input 
+						type="checkbox" 
+						id="updateBroadcast"
+						name="updateBroadcast" 
+						value="true"
+						class="mt-1 w-4 h-4 rounded border-dark-border bg-dark-elevated text-accent-primary focus:ring-2 focus:ring-accent-primary/50"
+					/>
+					<div class="flex-1">
+						<label for="updateBroadcast" class="block text-sm font-medium text-dark-text-primary mb-1 cursor-pointer">
+							Update AirPlay broadcast name
+						</label>
+						<p class="text-xs text-dark-text-muted">
+							Also update the name shown to AirPlay clients (requires speaker restart)
+						</p>
+					</div>
+				</div>
+			</div>
+			<button 
+				type="submit"
+				class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-accent-primary hover:bg-accent-primary/90 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-accent-primary/50 font-medium"
+			>
+				<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+				</svg>
+				<span>Update Display Name</span>
+			</button>
+		</form>
+	</div>
+}
+
+templ MuteButton(speakerID string, isMuted bool) {
+	if isMuted {
+		<button 
+			class="inline-flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/50"
+			hx-post={ fmt.Sprintf("/api/speaker/%s/mute", speakerID) }
+			hx-swap="outerHTML"
+		>
+			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"></path>
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path>
+			</svg>
+			<span class="text-sm font-medium">Unmute</span>
+		</button>
+	} else {
+		<button 
+			class="inline-flex items-center gap-2 px-4 py-2 bg-accent-primary/10 hover:bg-accent-primary/20 text-accent-primary border border-accent-primary/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-accent-primary/50"
+			hx-post={ fmt.Sprintf("/api/speaker/%s/mute", speakerID) }
+			hx-swap="outerHTML"
+		>
+			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+			</svg>
+			<span class="text-sm font-medium">Mute</span>
+		</button>
+	}
+}

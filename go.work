@@ -1,0 +1,12 @@
+go 1.23.8
+
+use (
+	.
+	./cmd/frontend
+)
+
+// When we modularize other components, add them here:
+// use ./cmd/mgmt
+// use ./cmd/bcg
+// use ./cluster
+// use ./api
