@@ -53,7 +53,16 @@ func (r *Server) Start(verbose bool) {
 			// Listen for an incoming connection.
 			conn, err := tcpListen.Accept()
 			if err != nil {
-				log.Fatal("Error accepting: ", err.Error())
+				// Check if this error is because the server is stopping
+				select {
+				case <-r.done:
+					// Server is stopping, exit gracefully
+					return
+				default:
+					// Real error, log but don't fatal
+					log.Println("Error accepting: ", err.Error())
+					return
+				}
 			}
 			go read(conn, r.handlers, verbose)
 		}

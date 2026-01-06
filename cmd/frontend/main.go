@@ -23,14 +23,28 @@ var (
 )
 
 type nodeConfig struct {
-	APIPort       int    `toml:"api-port"`
-	ClusterPort   int    `toml:"cluster-port"`
-	Name          string `toml:"name"`
-	WebServerPort int    `toml:"web-server-port"`
+	APIPort        int    `toml:"api-port"`
+	ClusterPort    int    `toml:"cluster-port"`
+	Name           string `toml:"name"`
+	WebServerPort  int    `toml:"web-server-port"`
+	VirtualAPIPort int    `toml:"virtual-api-port"`
+}
+
+type rtspConfig struct {
+	Name string `toml:"name"`
+	Port int    `toml:"port"`
+}
+
+type hlsConfig struct {
+	OutputDir       string `toml:"output-dir"`
+	SegmentDuration int    `toml:"segment-duration"`
+	MaxSessions     int    `toml:"max-sessions"`
 }
 
 type conf struct {
 	Node nodeConfig `toml:"node"`
+	Rtsp rtspConfig `toml:"rtsp"`
+	HLS  hlsConfig  `toml:"hls"`
 }
 
 func main() {
@@ -62,8 +76,12 @@ func main() {
 	nodeName := config.Node.Name
 	log.Printf("Starting frontend node: %s\n", nodeName)
 
-	// Set up cluster membership
-	metaData := &cluster.NodeMeta{NodeType: cluster.Frontend, APIPort: config.Node.APIPort}
+	// Set up cluster membership (include RTSP port for receiving streams)
+	metaData := &cluster.NodeMeta{
+		NodeType: cluster.Frontend,
+		APIPort:  config.Node.APIPort,
+		RtspPort: config.Rtsp.Port,
+	}
 	c := memberlist.DefaultLANConfig()
 	c.Name = nodeName
 	c.BindPort = config.Node.ClusterPort
@@ -127,8 +145,25 @@ func main() {
 		log.Printf("  - Management node at %s:%d\n", ep.Host, ep.Port)
 	}
 
-	// Create and start the HTTP server
-	httpServer := server.New(config.Node.WebServerPort, config.Node.APIPort, mgmtEndpoints, list)
+	// Set default HLS configuration values if not provided
+	if config.HLS.OutputDir == "" {
+		config.HLS.OutputDir = "./hls_output"
+	}
+	if config.HLS.MaxSessions == 0 {
+		config.HLS.MaxSessions = 10
+	}
+	if config.Rtsp.Port == 0 {
+		config.Rtsp.Port = 5001
+	}
+
+	// Set default virtual API port if not provided
+	if config.Node.VirtualAPIPort == 0 {
+		config.Node.VirtualAPIPort = 6779
+	}
+
+	// Create and start the HTTP server with HLS configuration
+	httpServer := server.New(config.Node.WebServerPort, config.Node.APIPort, mgmtEndpoints, list,
+		server.WithHLSConfig(config.HLS.OutputDir, config.HLS.MaxSessions, config.Rtsp.Port, config.Node.VirtualAPIPort))
 
 	// Set up member event handler to track mgmt nodes joining/leaving
 	c.Events = cluster.NewEventDelegate([]memberlist.EventDelegate{httpServer})

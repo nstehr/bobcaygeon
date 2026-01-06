@@ -106,7 +106,7 @@ func NewAirplayServer(port int, name string, player player.Player) *AirplayServe
 	return &as
 }
 
-//Start starts the airplay server, broadcasting on bonjour, ready to accept requests
+// Start starts the airplay server, broadcasting on bonjour, ready to accept requests
 func (a *AirplayServer) Start(verbose bool, advertise bool) {
 
 	if advertise {
@@ -122,7 +122,7 @@ func (a *AirplayServer) Start(verbose bool, advertise bool) {
 	rtspServer.AddHandler(rtsp.Setup, a.handleSetup)
 	rtspServer.AddHandler(rtsp.Record, a.handleRecord)
 	rtspServer.AddHandler(rtsp.Set_Parameter, a.handlSetParameter)
-	rtspServer.AddHandler(rtsp.Flush, handlFlush)
+	rtspServer.AddHandler(rtsp.Flush, a.handleFlush)
 	rtspServer.AddHandler(rtsp.Teardown, a.handleTeardown)
 	rtspServer.Start(verbose)
 
@@ -150,7 +150,7 @@ func (a *AirplayServer) ToggleAdvertise(shouldAdvertise bool) {
 	}
 }
 
-//ChangeName will change the name of the broadcast service
+// ChangeName will change the name of the broadcast service
 func (a *AirplayServer) ChangeName(newName string) error {
 	if strings.TrimSpace(newName) == "" {
 		return errors.New("New name must be non-empty")
@@ -341,7 +341,9 @@ func (a *AirplayServer) handlSetParameter(req *rtsp.Request, resp *rtsp.Response
 	resp.Status = rtsp.Ok
 }
 
-func handlFlush(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
+func (a *AirplayServer) handleFlush(req *rtsp.Request, resp *rtsp.Response, localAddress string, remoteAddress string) {
+	// FLUSH is sent when skipping songs or seeking
+	// This signals the player to clear buffers for the HLS stream
 	resp.Status = rtsp.Ok
 }
 

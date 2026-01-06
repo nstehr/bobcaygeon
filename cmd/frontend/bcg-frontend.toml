@@ -3,4 +3,16 @@
   api-port = 6778
   cluster-port = 6677
   web-server-port = 4445
+  virtual-api-port = 6779  # Port for virtual speaker gRPC API
   name = "mature-collie"
+
+# RTSP configuration for receiving streams
+[rtsp]
+  name = "Web Player"
+  port = 5001
+
+# HLS configuration
+[hls]
+  output-dir = "./hls_output"
+  segment-duration = 2
+  max-sessions = 10
