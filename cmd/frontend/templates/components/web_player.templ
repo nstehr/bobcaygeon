@@ -1,0 +1,263 @@
+package components
+
+import (
+    "encoding/base64"
+    "fmt"
+    api "github.com/nstehr/bobcaygeon/cmd/mgmt/api"
+)
+
+type WebPlayerState struct {
+    Zones           []*api.Zone
+    Speakers        []*api.Speaker
+    IsEnabled       bool
+    SessionID       string
+    PlaylistURL     string
+    SelectedZone    string
+    SelectedSpeaker string
+    Mode            string // "default", "single-zone", "multi-zone"
+    ErrorMessage    string
+}
+
+templ WebPlayer(state WebPlayerState) {
+    <div id="web-player" class="bg-dark-elevated rounded-xl border border-dark-border p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-dark-text-primary">Web Playback</h2>
+            if state.IsEnabled {
+                <button 
+                    hx-post="/api/web-player/disable"
+                    hx-vals={ fmt.Sprintf(`{"sessionId": "%s"}`, state.SessionID) }
+                    hx-target="#web-player"
+                    hx-swap="outerHTML"
+                    class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors">
+                    Stop Playback
+                </button>
+            }
+        </div>
+
+        if state.ErrorMessage != "" {
+            <div class="bg-red-900/20 border border-red-700 rounded-lg p-3 mb-4">
+                <p class="text-red-400 text-sm">{ state.ErrorMessage }</p>
+            </div>
+        }
+
+        if !state.IsEnabled {
+            @WebPlayerSelector(state)
+        } else {
+            @WebPlayerActive(state)
+        }
+    </div>
+}
+
+templ WebPlayerSelector(state WebPlayerState) {
+    <div class="space-y-4">
+        if state.Mode == "default" {
+            // No zones - show available speakers
+            <div class="bg-dark-bg rounded-lg p-4 border border-dark-border">
+                <p class="text-dark-text-secondary text-sm mb-3">
+                    No zones configured. All speakers are playing together.
+                </p>
+                if len(state.Speakers) > 0 {
+                    <form hx-post="/api/web-player/enable"
+                          hx-target="#web-player"
+                          hx-swap="outerHTML">
+                        <input type="hidden" name="mode" value="default"/>
+                        <input type="hidden" name="speakerId" value={ state.Speakers[0].Id }/>
+                        <button type="submit" 
+                                class="w-full px-4 py-2 bg-accent-primary hover:bg-accent-primary/90 text-white rounded-lg transition-colors">
+                            Enable Web Playback
+                        </button>
+                    </form>
+                } else {
+                    <p class="text-dark-text-muted text-sm">No speakers available.</p>
+                }
+            </div>
+        } else if state.Mode == "single-zone" && len(state.Zones) > 0 {
+            // Single zone - auto-enable
+            <div class="bg-dark-bg rounded-lg p-4 border border-dark-border">
+                <p class="text-dark-text-secondary text-sm mb-3">
+                    Zone: <strong>{ state.Zones[0].DisplayName }</strong>
+                </p>
+                <form hx-post="/api/web-player/enable"
+                      hx-target="#web-player"
+                      hx-swap="outerHTML">
+                    <input type="hidden" name="mode" value="zone"/>
+                    <input type="hidden" name="zoneId" value={ state.Zones[0].Id }/>
+                    <button type="submit"
+                            class="w-full px-4 py-2 bg-accent-primary hover:bg-accent-primary/90 text-white rounded-lg transition-colors">
+                        Enable Web Playback
+                    </button>
+                </form>
+            </div>
+        } else if state.Mode == "multi-zone" {
+            // Multiple zones - show selector
+            <div class="space-y-3">
+                <p class="text-dark-text-secondary text-sm">
+                    Select a zone to listen to:
+                </p>
+                for _, zone := range state.Zones {
+                    <form hx-post="/api/web-player/enable"
+                          hx-target="#web-player"
+                          hx-swap="outerHTML"
+                          class="bg-dark-bg rounded-lg p-4 border border-dark-border hover:border-accent-primary/50 transition-colors">
+                        <input type="hidden" name="mode" value="zone"/>
+                        <input type="hidden" name="zoneId" value={ zone.Id }/>
+                        <button type="submit" class="w-full text-left">
+                            <h3 class="font-medium text-dark-text-primary mb-1">
+                                { zone.DisplayName }
+                            </h3>
+                            <p class="text-sm text-dark-text-secondary">
+                                { fmt.Sprintf("%d speakers", len(zone.Speakers)) }
+                            </p>
+                        </button>
+                    </form>
+                }
+            </div>
+        }
+    </div>
+}
+
+templ WebPlayerActive(state WebPlayerState) {
+    <div class="space-y-4">
+        // Connection info
+        <div class="bg-dark-bg rounded-lg p-3 border border-dark-border">
+            <div class="flex items-center justify-between text-sm">
+                <span class="text-dark-text-secondary">
+                    if state.Mode == "default" {
+                        All Speakers
+                    } else {
+                        Zone: { state.SelectedZone }
+                    }
+                </span>
+                <span class="text-green-400 flex items-center gap-2">
+                    <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                    Connected
+                </span>
+            </div>
+        </div>
+
+        // Audio Player
+        <div class="bg-dark-bg rounded-lg p-4 border border-dark-border">
+            <audio id="hls-audio-player" 
+                   controls 
+                   class="w-full"
+                   data-playlist-url={ state.PlaylistURL }>
+            </audio>
+            
+            // Track info updated via SSE
+            <div id="track-info" 
+                 hx-ext="sse" 
+                 sse-connect={ fmt.Sprintf("/api/web-player/stream-status?sessionId=%s", state.SessionID) }
+                 sse-swap="message"
+                 class="mt-4">
+                @TrackInfo(TrackData{})
+            </div>
+        </div>
+
+        // Initialize HLS player
+        <script>
+            (function() {
+                const audio = document.getElementById('hls-audio-player');
+                if (!audio) {
+                    console.error('Audio element not found');
+                    return;
+                }
+                
+                const playlistUrl = audio.dataset.playlistUrl;
+                console.log('Initializing HLS player with playlist:', playlistUrl);
+                
+                if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+                    console.log('HLS.js is supported, creating player...');
+                    
+                    // Clean up any existing HLS instance
+                    if (audio._hls) {
+                        audio._hls.destroy();
+                        audio._hls = null;
+                    }
+                    
+                    const hls = new Hls({
+                        enableWorker: true,
+                        lowLatencyMode: true,
+                        backBufferLength: 30,  // Allow some back buffer
+                        maxBufferLength: 10,   // 10 seconds buffer
+                        liveSyncDurationCount: 2, // Stay within 2 segments of live edge
+                        liveMaxLatencyDurationCount: 5, // Max 5 segments behind live
+                        autoStartLoad: true,
+                        startPosition: -1,  // Start at live edge
+                        debug: true  // Enable debug logging
+                    });
+                    
+                    hls.loadSource(playlistUrl);
+                    hls.attachMedia(audio);
+                    
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        console.log('HLS manifest parsed, stream ready. Click play to start.');
+                    });
+                    
+                    // Handle errors and recover
+                    hls.on(Hls.Events.ERROR, function(event, data) {
+                        if (data.fatal) {
+                            switch(data.type) {
+                                case Hls.ErrorTypes.NETWORK_ERROR:
+                                    console.log("Network error, trying to recover");
+                                    hls.startLoad();
+                                    break;
+                                case Hls.ErrorTypes.MEDIA_ERROR:
+                                    console.log("Media error, trying to recover");
+                                    hls.recoverMediaError();
+                                    break;
+                                default:
+                                    console.log("Fatal error, reloading");
+                                    hls.destroy();
+                                    location.reload();
+                                    break;
+                            }
+                        }
+                    });
+                    
+                    // Optionally keep player close to live edge
+                    setInterval(function() {
+                        if (!audio.paused && hls.liveSyncPosition && audio.currentTime < hls.liveSyncPosition - 10) {
+                            console.log("Jumping closer to live edge");
+                            audio.currentTime = hls.liveSyncPosition - 2;
+                        }
+                    }, 10000);
+                    
+                    // Store reference for cleanup
+                    audio._hls = hls;
+                } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
+                    // Safari native HLS
+                    audio.src = playlistUrl;
+                    // Don't auto-play due to browser policies
+                }
+            })();
+        </script>
+    </div>
+}
+
+type TrackData struct {
+    Title   string
+    Artist  string
+    Album   string
+    Artwork []byte
+}
+
+templ TrackInfo(track TrackData) {
+    <div id="track-info-content" class="space-y-2">
+        if track.Title != "" {
+            <div class="flex items-start gap-3">
+                if len(track.Artwork) > 0 {
+                    <img src={ fmt.Sprintf("data:image/jpeg;base64,%s", base64.StdEncoding.EncodeToString(track.Artwork)) }
+                         alt="Album art"
+                         class="w-16 h-16 rounded-lg object-cover"/>
+                }
+                <div class="flex-1">
+                    <h4 class="font-medium text-dark-text-primary">{ track.Title }</h4>
+                    <p class="text-sm text-dark-text-secondary">{ track.Artist }</p>
+                    <p class="text-xs text-dark-text-muted">{ track.Album }</p>
+                </div>
+            </div>
+        } else {
+            <p class="text-dark-text-muted text-sm">No track information</p>
+        }
+    </div>
+}

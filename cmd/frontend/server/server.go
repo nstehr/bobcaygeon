@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/memberlist"
 	"github.com/nstehr/bobcaygeon/cluster"
+	"github.com/nstehr/bobcaygeon/player/hls"
 )
 
 // MgmtEndpoint represents a management server endpoint
@@ -26,16 +27,42 @@ type Server struct {
 	memberlist    *memberlist.Memberlist
 	mu            sync.RWMutex
 	router        *http.ServeMux
+	// HLS streaming support
+	streamManager  *hls.StreamManager
+	hlsDir         string
+	rtspBasePort   int
+	virtualSpeaker *VirtualSpeaker
+	virtualAPIPort int
+}
+
+// ServerOption is a function that configures a Server
+type ServerOption func(*Server)
+
+// WithHLSConfig configures HLS streaming settings
+func WithHLSConfig(hlsDir string, maxSessions int, rtspBasePort int, virtualAPIPort int) ServerOption {
+	return func(s *Server) {
+		s.hlsDir = hlsDir
+		s.rtspBasePort = rtspBasePort
+		s.virtualAPIPort = virtualAPIPort
+		s.streamManager = hls.NewStreamManager(hlsDir, maxSessions, rtspBasePort)
+	}
 }
 
 // New creates a new frontend server
-func New(webPort, apiPort int, initialEndpoints []MgmtEndpoint, ml *memberlist.Memberlist) *Server {
+func New(webPort, apiPort int, initialEndpoints []MgmtEndpoint, ml *memberlist.Memberlist, opts ...ServerOption) *Server {
 	s := &Server{
 		webPort:       webPort,
 		apiPort:       apiPort,
 		mgmtEndpoints: initialEndpoints,
 		memberlist:    ml,
 		router:        http.NewServeMux(),
+		hlsDir:        "./hls_output", // default
+		rtspBasePort:  5001,           // default
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(s)
 	}
 
 	// Initialize management client with initial endpoints
@@ -43,10 +70,33 @@ func New(webPort, apiPort int, initialEndpoints []MgmtEndpoint, ml *memberlist.M
 		s.mgmtClient = NewManagementClient(initialEndpoints)
 	}
 
+	// Initialize virtual speaker if HLS is configured
+	if s.streamManager != nil {
+		virtualSpeaker, err := NewVirtualSpeaker(ml, s.rtspBasePort, s.hlsDir, s.virtualAPIPort)
+		if err != nil {
+			log.Printf("Failed to create virtual speaker: %v", err)
+		} else {
+			s.virtualSpeaker = virtualSpeaker
+		}
+	}
+
 	// Set up routes
 	s.setupRoutes()
 
+	// Start cleanup goroutine if HLS is enabled
+	if s.streamManager != nil {
+		go s.startSessionCleanup()
+	}
+
 	return s
+}
+
+// startSessionCleanup periodically cleans up inactive HLS sessions
+func (s *Server) startSessionCleanup() {
+	ticker := time.NewTicker(5 * time.Minute)
+	for range ticker.C {
+		s.streamManager.CleanupInactiveSessions(30 * time.Minute)
+	}
 }
 
 // Start starts the HTTP server
@@ -79,6 +129,17 @@ func (s *Server) setupRoutes() {
 	s.router.HandleFunc("/api/zones", s.handleGetZones)
 	s.router.HandleFunc("/api/speaker/", s.handleSpeakerOperations)
 	s.router.HandleFunc("/api/now-playing/", s.handleNowPlaying)
+
+	// Web player endpoints (if HLS is enabled)
+	if s.streamManager != nil {
+		s.router.HandleFunc("/api/web-player", s.handleWebPlayer)
+		s.router.HandleFunc("/api/web-player/enable", s.handleEnableWebPlayback)
+		s.router.HandleFunc("/api/web-player/disable", s.handleDisableWebPlayback)
+		s.router.HandleFunc("/api/web-player/stream-status", s.handleStreamStatus)
+
+		// HLS file serving
+		s.router.HandleFunc("/hls/", s.handleHLSFiles)
+	}
 
 	// Health check
 	s.router.HandleFunc("/health", s.handleHealth)
